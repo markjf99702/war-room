@@ -1,6 +1,6 @@
 // How to play.
 
-import { h, s } from './dom.js';
+import { h, s, jdFoot } from './dom.js';
 import { glyph } from './map.js';
 import { WEEKS, FUNDRAISE, INCOME, POLL_COST, OFFICE_GAIN, DEBATE_WEEKS } from '../campaign.js';
 
@@ -32,7 +32,8 @@ export function showHelp(ctx) {
     h('p', {}, 'Polls close from east to west. Regions count in batches and the decision desk calls each one when the votes left can’t change it. Early returns in the cities lean Highland, because the Tidewater-leaning mail ballots are counted last, so don’t celebrate or panic at 9 PM.'),
     h('h3', {}, 'Stuck?'),
     h('p', {}, 'The Strategist button plans a sensible week for you to adjust. The Forecast tab shows which regions are most likely to decide it.'),
-    h('div', { class: 'paper-actions' }, h('button', { type: 'button', class: 'btn', onclick: () => close() }, 'Got it')));
+    h('div', { class: 'paper-actions' }, h('button', { type: 'button', class: 'btn', onclick: () => close() }, 'Got it')),
+    jdFoot());
   const overlay = h('div', { class: 'overlay', onclick: e => { if (e.target === overlay) close(); } }, sheet);
   const onKey = e => { if (e.key === 'Escape') close(); };
   function close() { overlay.remove(); document.body.style.overflow = ''; document.removeEventListener('keydown', onKey); }

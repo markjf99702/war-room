@@ -1,6 +1,6 @@
 // The title screen (pick a party and a difficulty) and the ticket (pick a running mate).
 
-import { h, margin, PARTY, plural } from './dom.js';
+import { h, margin, PARTY, plural, jdFoot } from './dom.js';
 import { makeMap } from './map.js';
 import { DIFFICULTY, HOME_BONUS, WEEKS } from '../campaign.js';
 import { PARTIES, TRAITS } from '../names.js';
@@ -64,6 +64,7 @@ export function renderTitle(root, ctx) {
       }, inv ? 'Play this campaign' : 'Start a campaign'),
       h('button', { class: 'btn big ghost', type: 'button', onclick: () => ctx.help() }, 'How to play')),
     rec.played ? h('p', { class: 'record' }, `Your record: ${rec.won} won, ${rec.played - rec.won} lost.`) : null,
+    jdFoot(),
   )));
 }
 

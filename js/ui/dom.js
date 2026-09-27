@@ -25,6 +25,12 @@ export const s = (tag, attrs, ...kids) => build(document.createElementNS(SVG_NS,
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
+// The line every junkdrawer.works project carries: on the title screen and in How to play, never over the board.
+export const jdFoot = () => h('footer', { class: 'jd-foot' },
+  h('a', { href: 'https://junkdrawer.works/' }, 'Part of junkdrawer.works'), ' ',
+  h('span', { 'aria-hidden': 'true' }, '·'), ' ',
+  h('a', { href: 'https://junkdrawer.works/privacy.html' }, 'Privacy'));
+
 export const PARTY = ['Tidewater', 'Highland'];
 export const PARTY_SHORT = ['T', 'H'];
 
