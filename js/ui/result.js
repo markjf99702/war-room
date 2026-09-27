@@ -92,16 +92,24 @@ export function renderResult(root, ctx) {
 
   // Your calls and the debates, and how each went.
   const allCalls = st.history.flatMap(e => (e.calls || []).map(c => ({ ...c, week: e.week })));
-  const outcomeWord = c => ({ won: 'it worked', lost: 'it backfired', kept: 'you went', broken: 'you didn’t go' })[c.result] || '';
+  const outcomeWord = c => ({ won: 'it worked', lost: 'it backfired', kept: c.side === me ? 'you went' : `${last(them)} went`, broken: c.side === me ? 'you didn’t go' : `${last(them)} didn’t go` })[c.result] || '';
   const callItems = [
     ...st.history.filter(e => e.debate).map(e => {
       const o = e.debate.outcome;
       const how = o.winner === null ? 'a draw' : o.winner === me ? `you won, ${o.snap[me]}% to ${o.snap[them]}%` : `${last(them)} won, ${o.snap[them]}% to ${o.snap[me]}%`;
       return h('li', {}, h('b', {}, `The ${e.debate.setup.nth} debate: `), `${how}.`);
     }),
-    ...allCalls.filter(c => c.side === me).map(c => h('li', {}, h('b', {}, `${c.title}: `), `${c.choice.toLowerCase()}`, outcomeWord(c) ? ` (${outcomeWord(c)})` : '', '.')),
+    ...allCalls.filter(c => c.side === me).map(callLine),
   ];
-  const theirBig = allCalls.filter(c => c.side === them && c.kind !== 'issue' && c.result).map(c => `${c.choice.toLowerCase()} (${outcomeWord(c)})`);
+  function callLine(c) {
+    // "Floods in Port Ansel: leave it to the agencies (it worked)." A question keeps its question mark.
+    const q = c.title.endsWith('?');
+    const choice = q ? c.choice : c.choice.charAt(0).toLowerCase() + c.choice.slice(1);
+    return h('li', {}, h('b', {}, q ? `${c.title} ` : `${c.title}: `), choice, outcomeWord(c) ? ` (${outcomeWord(c)})` : '', '.');
+  }
+  // The rival's gambles, turned face up (promises to visit aren't gambles, so they're left out).
+  const theirBig = allCalls.filter(c => c.side === them && (c.result === 'won' || c.result === 'lost'))
+    .map(c => callLine({ ...c, title: c.title.replace(/^Your /, 'Their ') }));
 
   const cards = [
     ['The tipping point', `${R(tip).name} (${plural(R(tip).electors, 'elector')}) put ${st.cands[res.winner].name} over the line. ${last(tipX.winner)} carried it by ${Math.abs(tipX.m).toFixed(1)} points, ${num(Math.abs(tipX.votes[0] - tipX.votes[1]))} votes.`],
@@ -139,7 +147,7 @@ export function renderResult(root, ctx) {
     note,
     h('div', { class: 'res-grid', style: 'margin-top:8px' }, ...cards.map(([t, p]) => h('div', { class: 'story-card' }, h('h3', {}, t), h('p', {}, p))),
       callItems.length ? h('div', { class: 'story-card calls-card' }, h('h3', {}, 'Your calls'), h('ul', {}, callItems),
-        theirBig.length ? h('p', { class: 'muted' }, `${last(them)}’s gambles: ${theirBig.join('; ')}.`) : null) : null),
+        theirBig.length ? [h('h3', { style: 'margin-top:12px' }, `${last(them)}’s gambles`), h('ul', { class: 'muted' }, theirBig)] : null) : null),
     h('div', { class: 'result-actions' },
       h('button', { type: 'button', class: 'btn stamp', onclick: () => ctx.start({ side: me, difficulty: st.difficulty }) }, 'Run again'),
       h('button', { type: 'button', class: 'btn', onclick: () => ctx.start({ side: them, difficulty: st.difficulty }) }, `Run as ${PARTY[them]}`),

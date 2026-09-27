@@ -29,19 +29,32 @@ export function weekEvents(state, country, plans, w, final = false) {
   const close = country.regions.map((g, k) => k).filter(k => Math.abs(regs[k].lean + state.mood) < 12);
   const inc = state.incumbent;
 
-  // The last week has no week after it, so nothing that needs an answer happens in it.
+  // How often each kind of story can come up in one campaign, so a campaign doesn't get four plant
+  // closings. The last week has no week after it, so nothing that needs an answer happens in it.
+  const seen = state.eventCounts || (state.eventCounts = {});
+  const lastWeek = state.history.at(-1);
+  const scandalLastWeek = lastWeek?.news.some(n => n.kind === 'scandal');
+  const answerable = !final;
   const deck = [
-    ['endorse', 3], ['plant', w >= 2 && !final ? 2 : 0], ['jobs', 2], ['scandal', w >= 2 && w !== 7 && !final ? 1.6 : 0],
-    ['flood', w >= 3 && !final ? 1.2 : 0], ['local', 2], ['union', 1],
-  ].filter(([, wt]) => wt > 0);
+    ['endorse', 3, 9], ['jobs', 2, 3], ['local', 1.6, 2], ['union', 1, 1],
+    ['plant', w >= 2 && answerable ? 1.4 : 0, 1],
+    ['strike', w >= 2 && answerable ? 1.2 : 0, 1],
+    ['factory', w >= 2 && w <= 6 && answerable ? 1.2 : 0, 1],
+    ['scandal', w >= 2 && w !== 7 && answerable && !scandalLastWeek ? 1.6 : 0, 2],
+    ['flood', w >= 3 && answerable ? 1.1 : 0, 1],
+  ].filter(([kind, wt, cap]) => wt > 0 && (seen[kind] || 0) < cap).map(([kind, wt]) => [kind, wt]);
   const count = r.chance(0.45) ? 2 : 1;
   const done = new Set();
-  for (let n = 0; n < count; n++) {
-    let kind;
-    do { kind = r.weighted(deck); } while (done.has(kind) && done.size < deck.length);
+  const economic = new Set(['plant', 'strike', 'factory']);
+  for (let n = 0; n < count && deck.length; n++) {
+    // One economic crisis a week at most, and never the same kind of story twice in a week.
+    const open = deck.filter(([kind]) => !done.has(kind) && !([...done].some(d => economic.has(d)) && economic.has(kind)));
+    if (!open.length) break;
+    const kind = r.weighted(open);
     done.add(kind);
     const out = STORIES[kind](state, country, r, { close, inc, w });
     if (!out) continue;
+    seen[kind] = (seen[kind] || 0) + 1;
     stories.push(out.story);
     if (out.trigger) triggers.push(out.trigger);
   }
@@ -68,7 +81,9 @@ export function weekEvents(state, country, plans, w, final = false) {
       if (!Number.isInteger(k)) continue;
       const name = who === 'cand' ? last(state, s) : state.mates[s].last;
       const place = country.regions[k].name;
-      if (gr.chance(who === 'cand' ? 0.07 : 0.06)) {
+      // Each side gets caught on a hot mic once a campaign at most.
+      if (gr.chance(who === 'cand' ? 0.07 : 0.06) && !seen[`gaffe${s}`]) {
+        seen[`gaffe${s}`] = 1;
         const quote = gr.pick(GAFFES);
         // In the final week there's no time to answer, so it lands in full.
         const hit = final ? 1.5 : 1.0;
@@ -94,7 +109,7 @@ const STORIES = {
     const k = r.pick(close), s = r.int(0, 1), g = country.regions[k];
     const who = r.chance(0.5) ? `The ${g.name} ${r.pick(PAPERS)}` : `${g.name}’s popular former governor`;
     state.regions[k].evt += sgn(s) * 1.5;
-    return { story: { tag: 'Endorsement', side: s, region: k, head: `${who} backs ${last(state, s)}`,
+    return { story: { tag: 'Endorsement', kind: 'endorse', side: s, region: k, head: `${who} backs ${last(state, s)}`,
       dek: `A boost in ${g.name}, where it counts for ${g.electors} electors.`, fx: `${last(state, s)} up 1.5 in ${g.name}` } };
   },
   plant(state, country, r, { inc }) {
@@ -110,6 +125,36 @@ const STORIES = {
         dek: `Voters there blame the party in power, ${last(state, inc)}’s. Both campaigns have to say what they’d do.`,
         fx: `${last(state, inc)} (the party in power) down 1.0 in ${g.name} so far` },
       trigger: { kind: 'plant', region: g.id, jobs, company },
+    };
+  },
+  strike(state, country, r, { inc }) {
+    const pool = country.regions.filter(g => g.coastal && g.urban > -0.3);
+    const g = r.pick(pool.length ? pool : country.regions.filter(x => x.coastal));
+    const days = r.int(6, 15);
+    state.regions[g.id].evt -= sgn(inc) * 0.6;
+    return {
+      story: { tag: 'Economy', kind: 'strike', side: 1 - inc, region: g.id,
+        head: `Dockworkers strike in ${g.name}; ships wait offshore`,
+        dek: `Day ${days} of the strike, and shop shelves are starting to empty. Both campaigns are being asked whose side they’re on.`,
+        fx: `${last(state, inc)} (the party in power) down 0.6 in ${g.name} so far` },
+      trigger: { kind: 'strike', region: g.id },
+    };
+  },
+  factory(state, country, r) {
+    // A new plant choosing between two neighbouring regions, both worth fighting over.
+    const near = country.regions.filter(g => Math.abs(state.regions[g.id].lean + state.mood) < 14);
+    const pairs = [];
+    for (const a of near) for (const b of a.neighbors) if (b > a.id && near.some(g => g.id === b)) pairs.push([a.id, b]);
+    if (!pairs.length) return null;
+    const [a, b] = r.pick(pairs);
+    const company = r.pick(COMPANIES);
+    const jobs = r.int(20, 45) * 100;
+    return {
+      story: { tag: 'Economy', kind: 'factory', region: a, other: b, company, jobs,
+        head: `${company} to build a ${jobs.toLocaleString('en-US')}-job plant in ${country.regions[a].name} or ${country.regions[b].name}`,
+        dek: 'The company wants a tax break and says the next government will decide where it goes. Both campaigns have been asked which region they’d back.',
+        fx: 'Nothing has moved yet' },
+      trigger: { kind: 'factory', region: a, other: b, company, jobs },
     };
   },
   jobs(state, country, r, { inc }) {
@@ -151,14 +196,14 @@ const STORIES = {
     const g = r.pick(country.regions);
     state.regions[g.id].und += 3;
     state.regions[g.id].evt -= sgn(inc) * 0.5;
-    return { story: { tag: 'Local', region: g.id, head: `Anger over ${r.pick(LOCAL)} shakes up ${g.name}`,
+    return { story: { tag: 'Local', kind: 'local', region: g.id, head: `Anger over ${r.pick(LOCAL)} shakes up ${g.name}`,
       dek: 'Voters who had made up their minds are listening again: more undecideds there, for now.', fx: `${g.name} has more undecided voters` } };
   },
   union(state, country, r) {
     const s = r.int(0, 1);
     const rural = country.regions.filter(g => g.urban < -0.4);
     for (const g of rural) state.regions[g.id].evt += sgn(s) * 0.6;
-    return { story: { tag: 'Endorsement', side: s, head: `The Farmers’ Union endorses ${last(state, s)}`,
+    return { story: { tag: 'Endorsement', kind: 'union', side: s, head: `The Farmers’ Union endorses ${last(state, s)}`,
       dek: `It counts in the ${rural.length} most rural regions.`, fx: `${last(state, s)} up 0.6 across the countryside` } };
   },
 };

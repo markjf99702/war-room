@@ -1,7 +1,7 @@
 // A debate you take part in: four questions, pick how to answer each, see how the rival answered.
 
 import { h } from './dom.js';
-import { STYLES, STYLE_KEYS, TEMPERS, debateSetup, autoAnswers, exchange, debateOutcome, fitFor, whyText } from '../debate.js';
+import { STYLES, STYLE_KEYS, TEMPERS, debateSetup, autoAnswers, exchange, debateOutcome, fitFor, whyText, TOPIC_NAMES } from '../debate.js';
 
 export function renderDebate(root, ctx, { plans, onDone }) {
   const { country, state: st } = ctx;
@@ -25,7 +25,7 @@ export function renderDebate(root, ctx, { plans, onDone }) {
     ? h('div', { class: 'db-report' },
       h('b', {}, 'Scouting report. '),
       `${rival.last} is ${theirTemper.label}: ${STYLES[theirTemper.natural].short} on about half the questions in the tapes you watched. `,
-      `Tonight’s topics: ${setup.topics.map(t => t.key === 'local' || t.key === 'swing' ? 'a local question' : t.key).join(', ')}.`)
+      `Tonight’s topics: ${setup.topics.map(t => TOPIC_NAMES[t.key]).join(', ')}.`)
     : h('div', { class: 'db-report' },
       h('b', {}, 'No prep this week. '),
       `You don’t know how ${rival.last} likes to answer. Watch the first couple of questions and adjust.`);

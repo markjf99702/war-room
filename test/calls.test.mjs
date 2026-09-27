@@ -145,3 +145,26 @@ test('your debate answers decide the debate', () => {
   assert.ok(h.news.some(n => n.tag === 'Debate' && n.side === 0));
   void moodBefore; void trueMargin;
 });
+
+test('no kind of crisis repeats more than its share in a campaign', () => {
+  const caps = { plant: 1, strike: 1, factory: 1, flood: 1, scandal: 2, union: 1, local: 2, jobs: 3, gaffe: 2 };
+  for (let i = 0; i < 40; i++) {
+    const st = fresh(`caps-${i}`);
+    while (st.phase === 'plan') {
+      resolveWeek(st, country, [blank(), blank()]);
+      for (const s of [0, 1]) decideAll(st, country, s);
+    }
+    const counts = {};
+    for (const e of st.history) for (const n of e.news) if (n.kind) counts[n.kind] = (counts[n.kind] || 0) + 1;
+    for (const [kind, cap] of Object.entries(caps)) assert.ok((counts[kind] || 0) <= cap, `${kind} came up ${counts[kind]} times in campaign ${i}`);
+    // At most one economic crisis in any one week.
+    for (const e of st.history) assert.ok(e.news.filter(n => ['plant', 'strike', 'factory'].includes(n.kind)).length <= 1);
+  }
+});
+
+test('a strike and a factory bid each ask both campaigns for a decision', () => {
+  const st = fresh('econ-1');
+  const ds = crisisDecisions(st, country, [{ kind: 'strike', region: 3 }, { kind: 'factory', region: 2, other: 4, company: 'Brightline Motors', jobs: 3000 }], st.week);
+  assert.deepEqual(ds.map(d => `${d.kind}:${d.side}`), ['strike:0', 'strike:1', 'factory:0', 'factory:1']);
+  for (const d of ds) assert.equal(d.options.length, 3);
+});

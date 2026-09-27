@@ -79,7 +79,7 @@ async function answerCalls(page, onCall) {
     const hint = (await cards.nth(i).locator('.call-note').textContent()).replace(/^Your strategist would: |\.$/g, '');
     const opts = cards.nth(i).locator('.call-opt:not([disabled])');
     for (let j = 0; j < await opts.count(); j++) {
-      if ((await opts.nth(j).locator('b').textContent()).toLowerCase().startsWith(hint)) { await opts.nth(j).click(); break; }
+      if ((await opts.nth(j).locator('b').textContent()).toLowerCase().startsWith(hint.toLowerCase())) { await opts.nth(j).click(); break; }
     }
     if (await cards.nth(i).locator('.call-opt:not([disabled])').count()) await cards.nth(i).locator('.call-opt:not([disabled])').first().click();
   }

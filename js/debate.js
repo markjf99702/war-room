@@ -12,6 +12,10 @@ export const STYLES = {
   story: { label: 'Tell a story', short: 'told a story' },
 };
 export const STYLE_KEYS = Object.keys(STYLES);
+export const TOPIC_NAMES = {
+  character: 'character', local: 'the plant closing', flood: 'the floods', strike: 'the dock strike', economy: 'the economy',
+  record: 'the government’s record', safety: 'crime', towns: 'the small towns', rents: 'city rents', vesland: 'Vesland', swing: 'a swing region',
+};
 const BEATS = { attack: 'facts', facts: 'plan', plan: 'story', story: 'attack' };
 const WHY = {
   attack: 'The attack landed while the other side was reciting numbers.',
@@ -36,6 +40,7 @@ function topicList(state, country, week) {
   const plant = [...news].reverse().find(n => n.kind === 'plant');
   const scandal = [...news].reverse().find(n => n.kind === 'scandal');
   const flood = [...news].reverse().find(n => n.kind === 'flood');
+  const strike = [...news].reverse().find(n => n.kind === 'strike');
   const metro = country.regions.find(g => g.metro === 0)?.name || 'the capital';
   const swing = [...country.regions].sort((a, b) => Math.abs(state.regions[a.id].lean) - Math.abs(state.regions[b.id].lean))[0];
   const T = [];
@@ -46,6 +51,9 @@ function topicList(state, country, week) {
   if (plant) T.push({ key: 'local', priority: 3,
     q: `${plant.jobs.toLocaleString('en-US')} jobs just left ${country.regions[plant.region].name}. What do you say to those workers tonight?`,
     fit: () => ({ story: 1, plan: 0.6, attack: 0, facts: -0.3 }) });
+  if (strike) T.push({ key: 'strike', priority: 2,
+    q: `The docks in ${country.regions[strike.region].name} have been shut for weeks. Whose side are you on?`,
+    fit: () => ({ plan: 1, story: 0.5, facts: 0.3, attack: -0.3 }) });
   if (flood) T.push({ key: 'flood', priority: 2,
     q: `Homes in ${country.regions[flood.region].name} are still under water. Was the government ready?`,
     fit: s => ({ attack: s === inc ? -0.5 : 1, facts: s === inc ? 1 : 0, story: 0.5, plan: 0.3 }) });

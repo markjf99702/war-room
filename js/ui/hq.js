@@ -14,7 +14,7 @@ import { WAVES, clock } from '../night.js';
 import { showPaper } from './paper.js';
 import { ask } from './ask.js';
 import { promiseFor, openFor, ISSUES } from '../decisions.js';
-import { debateSetup } from '../debate.js';
+import { debateSetup, TOPIC_NAMES } from '../debate.js';
 
 const RATING_NAMES = { t3: 'Safe Tidewater', t2: 'Likely Tidewater', t1: 'Leans Tidewater', tu: 'Toss-up', h1: 'Leans Highland', h2: 'Likely Highland', h3: 'Safe Highland' };
 
@@ -192,7 +192,7 @@ export function renderHQ(root, ctx) {
 
   function debateNote() {
     const setup = debateSetup(st, country, st.week);
-    const topics = setup.topics.map(t => ({ character: 'character', local: 'the plant closing', flood: 'the floods', economy: 'the economy', record: 'the government’s record', safety: 'crime', towns: 'the small towns', rents: 'city rents', vesland: 'Vesland', swing: 'a local question' })[t.key]);
+    const topics = setup.topics.map(t => TOPIC_NAMES[t.key]);
     return h('p', { style: 'margin:6px 0' }, h('b', {}, `Debate at the end of this week, at ${setup.venue}. `),
       `The moderators have said they’ll ask about ${topics.slice(0, -1).join(', ')} and ${topics.at(-1)}. You answer each question yourself. `,
       `If ${cand.last} skips the trail to prepare, you get a scouting report on how ${rivalCand.last} answers, and sharper answers of your own.`);

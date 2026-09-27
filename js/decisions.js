@@ -216,6 +216,26 @@ export function crisisDecisions(state, country, triggers, week) {
             { key: 'quiet', label: 'Stay out of it', says: inPower ? `Silence reads as not caring: about −0.5 in ${R.name}.` : 'Leave it to the other side to answer for it.', sure: inPower ? { regions: [[R.id, -0.5]] } : {}, done: inPower ? 'The silence was noticed.' : '' },
           ], { region: R.id }));
       }
+    } else if (t.kind === 'strike') {
+      for (const side of [0, 1]) {
+        const inPower = side === state.incumbent;
+        out.push(make(state, side, 'strike', week, `The dock strike in ${R.name}`,
+          `The dockworkers want a raise and a say over the new cranes. The port owners say they can’t afford either.${inPower ? ' Your party is in power, so people are looking to you to end it.' : ''}`, [
+            { key: 'workers', label: 'Stand with the dockworkers', says: `Up in ${R.name} (+1.2) and a little in the cities (+0.3), down a little in the countryside (−0.3).`, sure: { regions: [[R.id, 1.2], ...expand(country, [['urban', 0.3], ['rural', -0.3]])] }, done: 'The picket lines cheered.' },
+            { key: 'owners', label: 'Back the port owners', says: `Up in the countryside and the towns (+0.4), down in ${R.name} (−1.0).`, sure: { regions: [[R.id, -1.0], ...expand(country, [['rural', 0.4]])] }, done: 'Business groups were pleased; the docks were not.' },
+            { key: 'broker', label: inPower ? 'Broker a deal yourself' : 'Offer to broker a deal', says: `Even odds: a deal is struck and you get the credit (+1.5 in ${R.name}, +0.3 everywhere), or the talks collapse and it looks naive (−0.5 there).`, gamble: { p: 0.5, win: { regions: [[R.id, 1.5]], nat: 0.3 }, lose: { regions: [[R.id, -0.5]] }, winSays: 'The deal held, and the ships came in.', loseSays: 'The talks collapsed within a day.' } },
+          ], { region: R.id, defaultKey: 'owners' }));
+      }
+    } else if (t.kind === 'factory') {
+      const A = country.regions[t.region], B = country.regions[t.other];
+      for (const side of [0, 1]) {
+        out.push(make(state, side, 'factory', week, `Where should the ${t.company} plant go?`,
+          `${t.jobs.toLocaleString('en-US')} jobs, and ${A.name} and ${B.name} both want them. Whichever you back, the other will remember.`, [
+            { key: 'a', label: `Back ${A.name}`, says: `+1.4 in ${A.name}, −0.6 in ${B.name}.`, sure: { regions: [[A.id, 1.4], [B.id, -0.6]] }, done: `${A.name} was grateful; ${B.name} less so.` },
+            { key: 'b', label: `Back ${B.name}`, says: `+1.4 in ${B.name}, −0.6 in ${A.name}.`, sure: { regions: [[B.id, 1.4], [A.id, -0.6]] }, done: `${B.name} was grateful; ${A.name} less so.` },
+            { key: 'none', label: 'Say it’s the company’s choice', says: 'A little up in both (+0.2): nobody feels passed over.', sure: { regions: [[A.id, 0.2], [B.id, 0.2]] }, done: 'Nobody felt passed over.' },
+          ], { region: A.id, defaultKey: 'none' }));
+      }
     } else if (t.kind === 'flood') {
       for (const side of [0, 1]) {
         const inPower = side === state.incumbent;

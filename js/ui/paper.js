@@ -129,6 +129,8 @@ export function showPaper(ctx, entry, onDone) {
   return close;
 }
 
+const lowerFirst = t => t.charAt(0).toLowerCase() + t.slice(1);
+
 function groupBy(list, key) {
   const m = new Map();
   for (const x of list) { const k = key(x); if (!m.has(k)) m.set(k, []); m.get(k).push(x); }
@@ -161,7 +163,7 @@ function callCard(ctx, d, changed) {
       })),
       d.chosen
         ? h('p', { class: 'call-note' }, d.kind === 'issue' ? 'It’s on the record. You’ll see how it went down in next Monday’s paper.' : 'Decided. You’ll see how it played in next Monday’s paper.')
-        : h('p', { class: 'call-note' }, `Your strategist would: ${hint.label.toLowerCase()}.`));
+        : h('p', { class: 'call-note' }, `Your strategist would: ${lowerFirst(hint.label)}.`));
   };
   draw();
   return card;

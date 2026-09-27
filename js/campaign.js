@@ -128,7 +128,7 @@ export function newCampaign(country, { seed, side = 0, difficulty = 'normal' }) 
     forecasts: [[], []],
     plans: [emptyPlan(n), emptyPlan(n)],
     // Decisions waiting on an answer (and answered ones, until they play out), positions taken on issues.
-    pending: [], decided: [], stances: [{}, {}], issuesSeen: [],
+    pending: [], decided: [], stances: [{}, {}], issuesSeen: [], eventCounts: {},
   };
 
   // Before the first week: a national poll and a few early polls in the obvious battlegrounds.
@@ -180,7 +180,7 @@ export function electorsFor(country, margins) {
 function evenShift(country, leans, seed) {
   const r = rng(seed);
   const N = 3000, K = leans.length;
-  const draws = Array.from({ length: N }, () => ({ nat: r.gauss() * 2.2, reg: Array.from({ length: K }, () => r.gauss() * 3.4) }));
+  const draws = Array.from({ length: N }, () => ({ nat: r.gauss() * 2.8, reg: Array.from({ length: K }, () => r.gauss() * 4.6) }));
   const chance = shift => {
     let wins = 0;
     for (const d of draws) {
