@@ -1,8 +1,8 @@
 // War Room: glue. Holds the campaign, saves it, and switches between screens.
 
 import { makeCountry } from './country.js';
-import { newCampaign, chooseMate, resolveWeek, finalResult, clampPlan, WEEKS } from './campaign.js';
-import { planFor } from './ai.js';
+import { newCampaign, chooseMate, resolveWeek, finalResult, clampPlan, WEEKS, DEBATE_WEEKS } from './campaign.js';
+import { planFor, decideAll } from './ai.js';
 import { forecast } from './forecast.js';
 import { DIFFICULTY } from './campaign.js';
 import { h, $, money } from './ui/dom.js';
@@ -13,6 +13,7 @@ import { renderNight } from './ui/nightview.js';
 import { renderResult } from './ui/result.js';
 import { showHelp } from './ui/help.js';
 import { ask } from './ui/ask.js';
+import { renderDebate } from './ui/debateview.js';
 
 const KEY = 'war-room:game';
 const RECORD = 'war-room:record';
@@ -44,17 +45,29 @@ const ctx = {
     ctx.save();
     go('hq');
   },
-  // The player is done planning: the rival plans too, the week happens, and the paper comes out.
+  // The player is done planning: the rival plans too, there may be a debate, the week happens,
+  // the rival makes its calls for next week, and the paper comes out.
   endWeek() {
     const st = ctx.state, me = st.side, rival = 1 - me;
+    const level = DIFFICULTY[st.difficulty].ai;
     const plan = clampPlan(st.plans[me], st, country, me);
-    st.forecasts[me].push({ week: st.week, p: forecast(st, country, me, plan).p });
-    const theirs = planFor(st, country, rival, DIFFICULTY[st.difficulty].ai);
+    const theirs = planFor(st, country, rival, level);
     const plans = me === 0 ? [plan, theirs] : [theirs, plan];
-    const entry = resolveWeek(st, country, plans);
-    if (st.phase === 'night') st.result = finalResult(st, country);
-    ctx.save();
-    showPaper(ctx, entry, () => go(st.phase === 'night' ? 'night' : 'hq'));
+    const finish = answers => {
+      st.forecasts[me].push({ week: st.week, p: forecast(st, country, me, plan).p });
+      const entry = resolveWeek(st, country, plans, answers ? { debate: { answers: me === 0 ? [answers, null] : [null, answers] } } : {});
+      decideAll(st, country, rival, level);
+      if (st.phase === 'night') st.result = finalResult(st, country);
+      ctx.save();
+      if (answers) go('blank');
+      showPaper(ctx, entry, () => go(st.phase === 'night' ? 'night' : 'hq'));
+    };
+    if (DEBATE_WEEKS.includes(st.week)) {
+      root.replaceChildren();
+      root.className = 'app screen-debate';
+      window.scrollTo(0, 0);
+      renderDebate(root, ctx, { plans, onDone: finish });
+    } else finish();
   },
   finishNight() {
     const st = ctx.state;
@@ -94,7 +107,10 @@ function go(screen) {
   }
   root.replaceChildren();
   root.className = `app screen-${screen}`;
-  if (st) root.style.setProperty('--mine', st.side === 0 ? 'var(--tide)' : 'var(--high)');
+  if (st) {
+    root.style.setProperty('--mine', st.side === 0 ? 'var(--tide)' : 'var(--high)');
+    root.style.setProperty('--theirs', st.side === 0 ? 'var(--high)' : 'var(--tide)');
+  }
   document.body.style.overflow = '';
   window.scrollTo(0, 0);
   if (screen === 'title') renderTitle(root, ctx);
@@ -102,6 +118,7 @@ function go(screen) {
   else if (screen === 'hq') { root.append(header()); renderHQ(root, ctx); }
   else if (screen === 'night') renderNight(root, ctx);
   else if (screen === 'result') { root.append(header()); renderResult(root, ctx); }
+  else if (screen === 'blank') root.append(header());
 }
 
 function header() {
@@ -158,7 +175,7 @@ function toast(msg, ms = 2600) {
 }
 
 // Old saves from a different version of the rules aren't worth trying to rescue.
-if (ctx.state && ctx.state.v !== 1) { ctx.state = null; store.del(KEY); }
+if (ctx.state && ctx.state.v !== 2) { ctx.state = null; store.del(KEY); }
 go(ctx.invite ? 'title' : ctx.state ? 'resume' : 'title');
 
 // Offline copy (not in the single-file build, which has nowhere to put one).

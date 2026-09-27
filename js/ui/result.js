@@ -58,7 +58,7 @@ export function renderResult(root, ctx) {
         map.tokens(k, []);
         map.badgeText(k, `${d > 0 ? '+' : '−'}${a.toFixed(0)}`);
       });
-      note.textContent = `How far off your model was on the last day, in points. ${me === 0 ? 'Blue' : 'Orange'}: it went better for you than you thought. ${me === 0 ? 'Orange' : 'Blue'}: worse.`;
+      note.textContent = `How far off your model was on the last day, in points. ${me === 0 ? 'Teal' : 'Gold'}: it went better for you than you thought. ${me === 0 ? 'Gold' : 'Teal'}: worse.`;
     },
   };
   function playbook(s) {
@@ -89,6 +89,19 @@ export function renderResult(root, ctx) {
   const near = country.regions.map((g, k) => k).filter(k => Math.min(Math.abs(res.regions[k].m), Math.abs(estimate(st, me, k).m)) < 8);
   const bigMiss = (near.length ? near : country.regions.map((g, k) => k)).sort((a, b) => Math.abs(miss[b]) - Math.abs(miss[a]))[0];
   const mineTop = country.regions.map((g, k) => [k, book[me].spend[k]]).sort((a, b) => b[1] - a[1]).filter(x => x[1] > 0).slice(0, 3);
+
+  // Your calls and the debates, and how each went.
+  const allCalls = st.history.flatMap(e => (e.calls || []).map(c => ({ ...c, week: e.week })));
+  const outcomeWord = c => ({ won: 'it worked', lost: 'it backfired', kept: 'you went', broken: 'you didn’t go' })[c.result] || '';
+  const callItems = [
+    ...st.history.filter(e => e.debate).map(e => {
+      const o = e.debate.outcome;
+      const how = o.winner === null ? 'a draw' : o.winner === me ? `you won, ${o.snap[me]}% to ${o.snap[them]}%` : `${last(them)} won, ${o.snap[them]}% to ${o.snap[me]}%`;
+      return h('li', {}, h('b', {}, `The ${e.debate.setup.nth} debate: `), `${how}.`);
+    }),
+    ...allCalls.filter(c => c.side === me).map(c => h('li', {}, h('b', {}, `${c.title}: `), `${c.choice.toLowerCase()}`, outcomeWord(c) ? ` (${outcomeWord(c)})` : '', '.')),
+  ];
+  const theirBig = allCalls.filter(c => c.side === them && c.kind !== 'issue' && c.result).map(c => `${c.choice.toLowerCase()} (${outcomeWord(c)})`);
 
   const cards = [
     ['The tipping point', `${R(tip).name} (${plural(R(tip).electors, 'elector')}) put ${st.cands[res.winner].name} over the line. ${last(tipX.winner)} carried it by ${Math.abs(tipX.m).toFixed(1)} points, ${num(Math.abs(tipX.votes[0] - tipX.votes[1]))} votes.`],
@@ -124,7 +137,9 @@ export function renderResult(root, ctx) {
     h('div', { class: 'layer-tabs' }, tabBtns),
     h('div', { class: 'board' }, map.svg),
     note,
-    h('div', { class: 'res-grid', style: 'margin-top:8px' }, ...cards.map(([t, p]) => h('div', { class: 'story-card' }, h('h3', {}, t), h('p', {}, p)))),
+    h('div', { class: 'res-grid', style: 'margin-top:8px' }, ...cards.map(([t, p]) => h('div', { class: 'story-card' }, h('h3', {}, t), h('p', {}, p))),
+      callItems.length ? h('div', { class: 'story-card calls-card' }, h('h3', {}, 'Your calls'), h('ul', {}, callItems),
+        theirBig.length ? h('p', { class: 'muted' }, `${last(them)}’s gambles: ${theirBig.join('; ')}.`) : null) : null),
     h('div', { class: 'result-actions' },
       h('button', { type: 'button', class: 'btn stamp', onclick: () => ctx.start({ side: me, difficulty: st.difficulty }) }, 'Run again'),
       h('button', { type: 'button', class: 'btn', onclick: () => ctx.start({ side: them, difficulty: st.difficulty }) }, `Run as ${PARTY[them]}`),

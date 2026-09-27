@@ -39,12 +39,36 @@ page.on('requestfailed', r => problems.push('failed: ' + r.url()));
 page.on('request', r => { if (!r.url().startsWith(base)) problems.push('left the site: ' + r.url()); });
 page.on('dialog', d => d.accept());
 const fits = async where => assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${where} scrolls sideways on a phone`);
-// Ends the week, saying "vote anyway" if it asks about unspent money.
+// Ends the week, saying "vote anyway" if it asks about unspent money, and playing a debate if
+// there is one. Then answers the paper's calls.
+let debates = 0, calls = 0;
 async function endWeek() {
   await page.click('.planbar .btn.stamp');
-  await page.waitForSelector('.paper, .overlay [role="alertdialog"]');
-  if (await page.locator('[role="alertdialog"]').count()) await page.click('[role="alertdialog"] .btn.stamp');
+  await page.waitForSelector('.paper, .debate, [role="alertdialog"]');
+  if (await page.locator('[role="alertdialog"]').count()) { await page.click('[role="alertdialog"] .btn.stamp'); await page.waitForSelector('.paper, .debate'); }
+  if (await page.locator('.debate').count()) {
+    debates++;
+    await fits('the debate');
+    for (let q = 0; q < 4; q++) {
+      assert.equal(await page.locator('.db-answer').count(), 4, 'four ways to answer');
+      await page.click(`.db-answer >> nth=${(q + debates) % 4}`);
+      assert.match(await page.textContent('.db-result'), /You .*\./);
+      await page.click('.db-stage .btn');
+    }
+    assert.match(await page.textContent('.db-snap'), /%/);
+    await page.click('.db-stage .btn');
+  }
   await page.waitForSelector('.paper');
+}
+async function answerCalls() {
+  const cards = page.locator('.call');
+  for (let i = 0; i < await cards.count(); i++) {
+    const open = cards.nth(i).locator('.call-opt:not([disabled])');
+    if (!await open.count()) continue;
+    calls++;
+    assert.equal(await page.locator('.paper-actions .btn').isDisabled(), true, 'the paper waits for your call');
+    await open.last().click();
+  }
 }
 const pick = name => page.evaluate(n => {
   const k = window.warroom.country.regions.findIndex(g => g.name === n);
@@ -89,6 +113,7 @@ await page.click('.tabs button[data-tab="map"]');
 await endWeek();
 assert.match(await page.textContent('.memo'), /New Aldham/);
 await fits('the paper');
+await answerCalls();
 await page.click('.paper-actions .btn');
 assert.equal(await page.textContent('#weekChip b'), '2');
 
@@ -100,8 +125,16 @@ assert.equal(await page.textContent('#weekChip b'), '2');
 for (let w = 2; w <= 8; w++) {
   await page.click('.planbar button:has-text("Strategist")');
   await endWeek();
+  // Calls left unanswered come back after a reload.
+  if (await page.locator('.call-opt:not([disabled])').count()) {
+    await page.reload();
+    await page.waitForSelector('.paper .call-opt:not([disabled])');
+  }
+  await answerCalls();
   await page.click('.paper-actions .btn');
 }
+assert.equal(debates, 2, 'two debates');
+assert.ok(calls >= 4, `made ${calls} calls`);
 
 // Election night.
 await page.waitForSelector('.night');

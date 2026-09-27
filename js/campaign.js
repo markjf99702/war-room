@@ -5,7 +5,9 @@
 
 import { rng } from './rng.js';
 import { PARTIES, TRAITS, person, titleFor } from './names.js';
-import { weekEvents, debate, finalWeather } from './events.js';
+import { weekEvents, finalWeather } from './events.js';
+import { crisisDecisions, issueDecisions, resurfaceDecision, resolveDecisions } from './decisions.js';
+import { debateSetup, autoAnswers, debateOutcome, debateStory, TEMPERS } from './debate.js';
 
 export const WEEKS = 8;
 export const DEBATE_WEEKS = [3, 6];
@@ -21,7 +23,7 @@ export const FOG = 1.1; // how many points an estimate goes stale each week with
 // How much of a side's own work (and what it has seen of the rival's) its model counts before a poll confirms it.
 export const MODEL = { own: 0.5, rival: 1, plan: 0.5 };
 export const DIFFICULTY = {
-  easy: { label: 'Easy', mood: 2.5, ai: 'easy', text: 'The country is leaning your way and your rival makes mistakes.' },
+  easy: { label: 'Easy', mood: 3.2, ai: 'easy', text: 'The country is leaning your way and your rival makes mistakes.' },
   normal: { label: 'Normal', mood: 0, ai: 'normal', text: 'A close year against a capable rival.' },
   hard: { label: 'Hard', mood: -1.5, ai: 'hard', text: 'The mood is against you and your rival has better data.' },
 };
@@ -79,7 +81,7 @@ export function newCampaign(country, { seed, side = 0, difficulty = 'normal' }) 
 
   const regions = country.regions.map((g, k) => ({
     lean: leans[k], home: 0, drift: 0, evt: 0,
-    pers: [0, 0], buzz: [0, 0], gotv: [0, 0], office: [0, 0], adStock: [0, 0], ads: [0, 0], rally: [0, 0],
+    pers: [0, 0], buzz: [0, 0], gotv: [0, 0], office: [0, 0], adStock: [0, 0], ads: [0, 0], rally: [0, 0], issue: [0, 0],
     und: +(g.und0 + r.gauss()).toFixed(2),
   }));
 
@@ -89,7 +91,8 @@ export function newCampaign(country, { seed, side = 0, difficulty = 'normal' }) 
     const pool = country.regions.filter((g, k) => sign(s) * leans[k] > -4 && g.electors >= 4);
     const home = r.pick(pool).id;
     const p = person(r, used);
-    return { ...p, home, title: s === incumbent && r.chance(0.5) ? 'Vice President' : titleFor(r, country.regions[home], true) };
+    const temper = r.pick(Object.keys(TEMPERS));
+    return { ...p, home, temper, title: s === incumbent && r.chance(0.5) ? 'Vice President' : titleFor(r, country.regions[home], true) };
   });
   cands.forEach((c, s) => { regions[c.home].home += sign(s) * HOME_BONUS.cand; });
 
@@ -112,7 +115,7 @@ export function newCampaign(country, { seed, side = 0, difficulty = 'normal' }) 
   const lastWinner = lastE >= country.majority ? 0 : 1;
 
   const state = {
-    v: 1, seed: String(seed), side, difficulty, week: 1, phase: 'mate',
+    v: 2, seed: String(seed), side, difficulty, week: 1, phase: 'mate',
     mood, incumbent, cands, mates: [null, null], mateOptions,
     money: [START_MONEY, START_MONEY],
     regions, last, lastNat, lastWinner, lastMood, lastElectors: [lastE, country.totalElectors - lastE],
@@ -124,6 +127,8 @@ export function newCampaign(country, { seed, side = 0, difficulty = 'normal' }) 
     })),
     forecasts: [[], []],
     plans: [emptyPlan(n), emptyPlan(n)],
+    // Decisions waiting on an answer (and answered ones, until they play out), positions taken on issues.
+    pending: [], decided: [], stances: [{}, {}], issuesSeen: [],
   };
 
   // Before the first week: a national poll and a few early polls in the obvious battlegrounds.
@@ -153,10 +158,11 @@ export function chooseMate(state, country, s, j) {
 
 export function trueMargin(rs, mood) {
   return rs.lean + rs.home + mood + rs.drift + rs.evt
-    + rs.pers[0] - rs.pers[1] + rs.buzz[0] - rs.buzz[1] + rs.gotv[0] - rs.gotv[1];
+    + rs.pers[0] - rs.pers[1] + rs.buzz[0] - rs.buzz[1] + rs.gotv[0] - rs.gotv[1] + rs.issue[0] - rs.issue[1];
 }
 
-export const ownEffect = (rs, s) => rs.pers[s] + rs.buzz[s] + rs.gotv[s];
+// A side's own doing in a region: persuasion, enthusiasm, turnout and the positions it has taken.
+export const ownEffect = (rs, s) => rs.pers[s] + rs.buzz[s] + rs.gotv[s] + rs.issue[s];
 
 export function popular(country, margins) {
   let tot = 0, sum = 0;
@@ -217,7 +223,7 @@ export function estimate(state, s, k) {
   const done = state.week - 1;
   const m = o.m + (natAvg(state) - o.nat)
     + MODEL.own * sign(s) * (ownEffect(rs, s) - o.own)
-    + MODEL.rival * sign(other(s)) * (rs.rally[other(s)] - o.rival + rivalSeen(state, s, k, o.week));
+    + MODEL.rival * sign(other(s)) * (rs.rally[other(s)] - o.rival + rs.issue[other(s)] - (o.rivalIssue || 0) + rivalSeen(state, s, k, o.week));
   const sd = Math.sqrt(o.sd ** 2 + (FOG * Math.max(0, done - o.week)) ** 2);
   return { m, sd, week: o.week, src: o.src };
 }
@@ -228,7 +234,7 @@ function observe(state, s, k, m, sd, src, week) {
   const wp = 1 / prior.sd ** 2, wm = 1 / sd ** 2;
   state.intel[s].obs[k] = {
     week, m: (prior.m * wp + m * wm) / (wp + wm), sd: Math.sqrt(1 / (wp + wm)),
-    own: ownEffect(state.regions[k], s), rival: state.regions[k].rally[other(s)], nat: natAvg(state), src,
+    own: ownEffect(state.regions[k], s), rival: state.regions[k].rally[other(s)], rivalIssue: state.regions[k].issue[other(s)], nat: natAvg(state), src,
   };
 }
 
@@ -299,7 +305,9 @@ export function clampPlan(plan, state, country, s) {
   return p;
 }
 
-export function resolveWeek(state, country, rawPlans) {
+// opts.debate: { answers: [tidewaterAnswers, highlandAnswers] } for a debate week; a side left out
+// answers the way the computer would.
+export function resolveWeek(state, country, rawPlans, opts = {}) {
   const w = state.week;
   const plans = rawPlans.map((p, s) => clampPlan(p, state, country, s));
   const news = [];
@@ -353,14 +361,49 @@ export function resolveWeek(state, country, rawPlans) {
   });
   state.mood += dr.gauss() * 0.45;
 
+  // The calls both campaigns made on Monday play out.
+  const calls = resolveDecisions(state, country, plans, w);
+
+  // The debate, at the end of the week.
+  let debate = null;
+  if (DEBATE_WEEKS.includes(w)) {
+    const setup = debateSetup(state, country, w);
+    const answers = [0, 1].map(s => opts.debate?.answers?.[s] || autoAnswers(state, country, setup, s));
+    const prepped = plans.map(p => p.cand === 'prep');
+    const outcome = debateOutcome(state, country, setup, answers, prepped);
+    if (outcome.winner !== null) {
+      state.mood += sign(outcome.winner) * outcome.bump;
+      state.regions.forEach(rs => { rs.und = Math.max(1.5, rs.und - 1); });
+    }
+    debate = { setup, answers, prepped, outcome };
+    news.push(debateStory(state, setup, outcome, prepped));
+  }
+
   // The news.
-  news.push(...weekEvents(state, country, plans, w));
-  if (DEBATE_WEEKS.includes(w)) news.unshift(debate(state, country, plans, w));
+  const { stories, triggers } = weekEvents(state, country, plans, w, w === WEEKS);
+  news.push(...stories);
   if (w === WEEKS) { const wx = finalWeather(state, country, w); if (wx) news.push(wx); }
 
   // Money for next week.
   const got = [0, 1].map(s => income(state, s, plans[s]));
   for (const s of [0, 1]) state.money[s] += got[s];
+
+  // What needs an answer next Monday: the fallout from this week's news, or failing that an issue
+  // everyone has to take a side on. Sometimes an old position comes back to be defended.
+  const made = [];
+  state.decided.push(...state.pending.filter(d => d.week === w));
+  state.pending = state.pending.filter(d => d.week > w);
+  if (w < WEEKS) {
+    made.push(...crisisDecisions(state, country, triggers, w + 1));
+    if (!made.length && rng(`${state.seed}:w${w}:issue-roll`)() < 0.85) made.push(...issueDecisions(state, country, w + 1));
+    for (const s of [0, 1]) {
+      if (made.some(d => d.side === s)) continue;
+      const again = resurfaceDecision(state, country, s, w + 1);
+      if (again) made.push(again);
+    }
+    made.forEach((d, i) => { d.id = `w${w + 1}-${i}-${d.kind}-${d.side}`; });
+    state.pending.push(...made);
+  }
 
   // The week is done; polls taken now see all of it.
   state.week = w + 1;
@@ -372,7 +415,7 @@ export function resolveWeek(state, country, rawPlans) {
   const own = [0, 1].map(s => [...new Set([...plans[s].polls, ...plans[s].free])].map(k => ownPoll(state, country, s, k, w)));
 
   const after = country.regions.map((g, k) => trueMargin(state.regions[k], state.mood));
-  state.history.push({ week: w, plans, news, trail, income: got, bank: [...state.money], pub, own, nat: state.natPolls.at(-1).m, before, after, mood: state.mood });
+  state.history.push({ week: w, plans, news, trail, income: got, bank: [...state.money], pub, own, nat: state.natPolls.at(-1).m, before, after, mood: state.mood, calls, debate, asks: made.map(d => d.id) });
 
   state.plans = [emptyPlan(country.regions.length), emptyPlan(country.regions.length)];
   if (state.week > WEEKS) state.phase = 'night';

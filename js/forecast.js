@@ -2,7 +2,7 @@
 // thousand times with shared national error, and count. Also says which regions matter most.
 
 import { rng } from './rng.js';
-import { estimate, sign, WEEKS, OFFICE_GAIN, MODEL, adPush, adPower, rallyPush } from './campaign.js';
+import { estimate, sign, WEEKS, DEBATE_WEEKS, OFFICE_GAIN, MODEL, adPush, adPower, rallyPush } from './campaign.js';
 
 // What this week's plan should do in each region, in points for side s. Includes what's already
 // set in motion: ads still in the air from last week, and offices that will keep working.
@@ -36,16 +36,20 @@ export function planEffects(state, country, s, plan) {
 export function inputs(state, country, s, plan) {
   const fx = plan ? planEffects(state, country, s, plan) : new Float64Array(country.regions.length);
   const after = Math.max(0, WEEKS - state.week); // weeks still to come after this one
+  const left = after + 1; // and this one: its news, drift and calls haven't happened yet either
   const regions = country.regions.map((g, k) => {
     const e = estimate(state, s, k);
     const und = state.regions[k].und;
     return {
       now: e.m, sdNow: e.sd, fx: fx[k],
       mean: e.m + MODEL.plan * sign(s) * fx[k],
-      sd: Math.sqrt(e.sd ** 2 + after * 0.7 ** 2 + (0.8 + und / 6) ** 2),
+      sd: Math.sqrt(e.sd ** 2 + left * 0.5 ** 2 + (0.8 + und / 6) ** 2),
     };
   });
-  const natSd = Math.sqrt(after * 0.6 ** 2 + 1.3 ** 2 + 0.7 ** 2);
+  // Debates still to come, and scandals and gambles already in play, can swing the whole country.
+  const debates = DEBATE_WEEKS.filter(w => w >= state.week).length;
+  const inPlay = state.pending.filter(d => d.week === state.week && d.kind !== 'issue').length / 2;
+  const natSd = Math.sqrt(left * 0.9 ** 2 + 1.3 ** 2 + 0.7 ** 2 + debates * 1.2 ** 2 + inPlay * 1.0 ** 2);
   return { regions, natSd };
 }
 

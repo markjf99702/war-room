@@ -17,8 +17,18 @@ await page.click('.mate-card');
 for (let w = 1; w <= 8; w++) {
   await page.click('.planbar button:has-text("Strategist")');
   await page.click('.planbar .btn.stamp');
-  await page.waitForSelector('.paper, [role="alertdialog"]');
-  if (await page.locator('[role="alertdialog"]').count()) await page.click('[role="alertdialog"] .btn.stamp');
+  await page.waitForSelector('.paper, .debate, [role="alertdialog"]');
+  if (await page.locator('[role="alertdialog"]').count()) { await page.click('[role="alertdialog"] .btn.stamp'); await page.waitForSelector('.paper, .debate'); }
+  if (await page.locator('.debate').count()) {
+    for (let q = 0; q < 4; q++) { await page.click('.db-answer >> nth=1'); await page.click('.db-stage .btn'); }
+    await page.click('.db-stage .btn');
+    await page.waitForSelector('.paper');
+  }
+  const cards = page.locator('.call');
+  for (let i = 0; i < await cards.count(); i++) {
+    const opt = cards.nth(i).locator('.call-opt:not([disabled])');
+    if (await opt.count()) await opt.first().click();
+  }
   await page.click('.paper-actions .btn');
 }
 await page.waitForSelector('.night');

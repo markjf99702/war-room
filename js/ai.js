@@ -10,6 +10,7 @@ import {
   WEEKS, DEBATE_WEEKS, FUNDRAISE, OFFICE_GAIN, POLL_COST, adPush, adUnit, officeCost, rallyPush, emptyPlan, sign,
 } from './campaign.js';
 import { inputs, simulate } from './forecast.js';
+import { choose, openFor, promiseFor } from './decisions.js';
 
 const NOISE = { easy: 0.9, normal: 0.25, hard: 0, advisor: 0 };
 
@@ -82,7 +83,54 @@ export function planFor(state, country, s, level = 'normal') {
   const choices = [['fund', FUNDRAISE.cand * moneyLater], [ck, cv]];
   if (DEBATE_WEEKS.includes(state.week)) choices.push(['prep', 0.2 * 2 * 1.4 * vNat]);
   plan.cand = choices.sort((a, b) => b[1] - a[1])[0][0];
+  // A promise to be somewhere this week is kept.
+  const promised = promiseFor(state, s);
+  if (promised !== null) plan.cand = promised;
   const [mk, mv] = pickSpot('mate', plan.cand);
   plan.mate = mv > FUNDRAISE.mate * moneyLater ? mk : 'fund';
   return plan;
+}
+
+// ---------------------------------------------------------------- the calls
+
+// Picks an answer to one of the week's decisions. It values each option by what it's likely to do to
+// the side's chance of winning, and its appetite for a gamble depends on the race: a campaign that's
+// behind needs something to change, and one that's ahead wants nothing to.
+export function decide(state, country, s, d, level = 'normal') {
+  const n = country.regions.length;
+  const r = rng(`${state.seed}:decide:${d.id}:${level}`);
+  const sim = simulate(inputs(state, country, s, emptyPlan(n)), country, s, { n: 800, seed: `${state.seed}:decide:${s}:${state.week}` });
+  const v = sim.value.map((x, k) => x + 1e-4 * country.regions[k].electors);
+  const vNat = v.reduce((a, b) => a + b, 0);
+  const perDollar = 0.25 * Math.max(...v);
+  const worth = fx => {
+    if (!fx) return 0;
+    let x = (fx.nat || 0) * vNat + (fx.money || 0) * perDollar;
+    for (const [k, pts] of fx.regions || []) x += pts * v[k];
+    return x;
+  };
+  const appetite = (0.5 - sim.p) * 1.2;
+  const scored = d.options.filter(o => (o.cost || 0) <= state.money[s]).map(o => {
+    let x = worth(o.sure) - (o.cost || 0) * perDollar;
+    if (o.gamble) {
+      const a = worth(o.gamble.win), b = worth(o.gamble.lose), p = o.gamble.p;
+      x += p * a + (1 - p) * b + appetite * Math.abs(a - b) * Math.sqrt(p * (1 - p));
+    }
+    if (o.promise) x += 0.9 * worth(o.promise.kept);
+    if (o.stance?.regions) x += worth({ regions: o.stance.regions });
+    if (o.flip) {
+      const was = state.stances[s][o.flip.issue]?.applied || [];
+      x += worth({ regions: o.flip.regions }) - worth({ regions: was });
+    }
+    if (level === 'easy') x *= Math.exp(r.gauss() * 0.8);
+    else if (level === 'normal') x *= Math.exp(r.gauss() * 0.15);
+    return [o.key, x];
+  });
+  if (!scored.length) return d.defaultKey;
+  if (level === 'easy' && r.chance(0.35)) return r.pick(scored)[0];
+  return scored.sort((a, b) => b[1] - a[1])[0][0];
+}
+
+export function decideAll(state, country, s, level = 'normal') {
+  for (const d of openFor(state, s)) choose(state, d.id, decide(state, country, s, d, level));
 }

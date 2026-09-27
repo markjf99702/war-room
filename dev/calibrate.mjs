@@ -1,8 +1,9 @@
 // Checks the forecast is honest: of the times it said 70%, did that side win about 70% of the time?
 import { makeCountry } from '../js/country.js';
 import { newCampaign, chooseMate, resolveWeek, finalResult, MODEL } from '../js/campaign.js';
-const [o, rv, pl] = (process.argv[3] || '1,1,1').split(',').map(Number); MODEL.own = o; MODEL.rival = rv; MODEL.plan = pl;
-import { planFor } from '../js/ai.js';
+// Optional: try other model weights, e.g.  node dev/calibrate.mjs 50 0.5,1,0.5
+if (process.argv[3]) { const [o, rv, pl] = process.argv[3].split(',').map(Number); MODEL.own = o; MODEL.rival = rv; MODEL.plan = pl; }
+import { planFor, decideAll } from '../js/ai.js';
 import { forecast } from '../js/forecast.js';
 const country = makeCountry();
 const N = +process.argv[2] || 60;
@@ -17,6 +18,7 @@ for (let i = 0; i < N; i++) {
     const plans = [planFor(st, country, 0), planFor(st, country, 1)];
     for (const s of [0, 1]) rec.push([s, st.week, forecast(st, country, s, plans[s], 800).p]);
     resolveWeek(st, country, plans);
+    for (const s of [0, 1]) decideAll(st, country, s);
   }
   const res = finalResult(st, country);
   for (const [s, w, p] of rec) {

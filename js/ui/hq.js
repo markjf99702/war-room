@@ -13,6 +13,8 @@ import { TRAITS } from '../names.js';
 import { WAVES, clock } from '../night.js';
 import { showPaper } from './paper.js';
 import { ask } from './ask.js';
+import { promiseFor, openFor, ISSUES } from '../decisions.js';
+import { debateSetup } from '../debate.js';
 
 const RATING_NAMES = { t3: 'Safe Tidewater', t2: 'Likely Tidewater', t1: 'Leans Tidewater', tu: 'Toss-up', h1: 'Leans Highland', h2: 'Likely Highland', h3: 'Safe Highland' };
 
@@ -24,6 +26,9 @@ export function renderHQ(root, ctx) {
   const { country, state: st } = ctx;
   const me = st.side, them = 1 - me;
   const plan = st.plans[me];
+  // A promise made in Monday's paper puts the candidate there to start with.
+  const promised = promiseFor(st, me);
+  if (promised !== null && !plan.promiseSeen) { plan.cand = promised; plan.promiseSeen = true; ctx.save(); }
   const ui = { tab: 'map', sel: null, fc: null, fxBase: null };
   const cand = st.cands[me], mate = st.mates[me];
   const rivalCand = st.cands[them], rivalMate = st.mates[them];
@@ -173,13 +178,44 @@ export function renderHQ(root, ctx) {
           st.week === 1 ? `You have ${money(st.money[me])}. ` : `You have ${money(st.money[me])} to spend. `,
           'Tap a region to send your candidate or running mate there, buy ads, open a field office or order a poll. ',
           'Anything you don’t plan, they spend fundraising.'),
-        debateWeek ? h('p', { style: 'margin:6px 0' }, h('b', {}, `Debate at the end of this week. `), `${cand.last} can skip the trail to prepare.`) : null,
+        promised !== null ? h('p', { style: 'margin:6px 0' }, h('b', {}, `You promised to go to ${R(promised).name} this week. `),
+          plan.cand === promised ? `${cand.last} is booked there. Send them elsewhere and you break the promise.` : `${cand.last} isn’t going. That will be noticed.`) : null,
+        debateWeek ? debateNote() : null,
         st.week === WEEKS ? h('p', { style: 'margin:6px 0' }, h('b', {}, 'Last week. '), 'Spend it all: money is worth nothing after Tuesday.') : null,
         h('p', { class: 'fx-line' }, `Not sure? The Strategist will plan a sensible week for you to adjust.`)),
       lastPaper ? h('button', { type: 'button', class: 'panel', style: 'display:block;width:100%;text-align:left;cursor:pointer', onclick: () => showPaper(ctx, lastPaper, null) },
         h('div', { class: 'kicker', style: 'font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--stamp)' }, `Last week’s paper`),
         h('div', { style: 'font-family:var(--news);font-size:20px;font-weight:700;line-height:1.15;margin-top:2px' }, leadHeadline(lastPaper))) : null,
+      positions(),
       closestList());
+  }
+
+  function debateNote() {
+    const setup = debateSetup(st, country, st.week);
+    const topics = setup.topics.map(t => ({ character: 'character', local: 'the plant closing', flood: 'the floods', economy: 'the economy', record: 'the government’s record', safety: 'crime', towns: 'the small towns', rents: 'city rents', vesland: 'Vesland', swing: 'a local question' })[t.key]);
+    return h('p', { style: 'margin:6px 0' }, h('b', {}, `Debate at the end of this week, at ${setup.venue}. `),
+      `The moderators have said they’ll ask about ${topics.slice(0, -1).join(', ')} and ${topics.at(-1)}. You answer each question yourself. `,
+      `If ${cand.last} skips the trail to prepare, you get a scouting report on how ${rivalCand.last} answers, and sharper answers of your own.`);
+  }
+
+  // Positions both campaigns have taken on the issues (they're public).
+  function positions() {
+    const keys = [...new Set([...Object.keys(st.stances[me]), ...Object.keys(st.stances[them])])];
+    if (!keys.length) return null;
+    const label = (s, key) => {
+      const st0 = st.stances[s][key];
+      if (!st0) return '—';
+      const opt = ISSUES.find(i => i.key === key).options.find(o => o.key === st0.option);
+      return `${opt.label}${st0.flipped ? ' (changed)' : ''}`;
+    };
+    return h('div', { class: 'panel' },
+      h('div', { class: 'card-title', style: 'margin-top:0' }, 'On the record'),
+      h('table', { class: 'tip-table' },
+        h('thead', {}, h('tr', {}, h('th', {}, 'Issue'), h('th', {}, cand.last), h('th', {}, rivalCand.last))),
+        h('tbody', {}, ...keys.map(key => h('tr', {},
+          h('td', {}, h('b', {}, ISSUES.find(i => i.key === key).title)),
+          h('td', {}, label(me, key)),
+          h('td', {}, label(them, key)))))));
   }
 
   function closestList() {
@@ -218,6 +254,7 @@ export function renderHQ(root, ctx) {
     const tags = [
       h('span', { class: 'tag' }, `Polls close ${closeTime(g)}`),
       g.metro >= 0 ? h('span', { class: 'tag' }, country.cities[g.metro].capital ? 'The capital' : 'Big city') : null,
+      promised === k ? h('span', { class: 'tag promise' }, `You promised to come this week`) : null,
       cand.home === k ? h('span', { class: `tag ${me ? 'h' : 't'}` }, `${cand.last}’s home`) : null,
       mate.home === k ? h('span', { class: `tag ${me ? 'h' : 't'}` }, `${mate.last}’s home`) : null,
       rivalCand.home === k ? h('span', { class: `tag ${them ? 'h' : 't'}` }, `${rivalCand.last}’s home`) : null,
@@ -362,6 +399,7 @@ export function renderHQ(root, ctx) {
   }
 
   refresh();
+  if (openFor(st, me).length && st.history.length && !document.querySelector('.paper')) showPaper(ctx, st.history.at(-1), () => {});
 }
 
 function undecidedLine(poll, pub, g) {

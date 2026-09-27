@@ -2,11 +2,11 @@
 // Anything the person saves lives in localStorage, not here.
 // Network first, so a new version shows up as soon as you're online.
 
-const CACHE = 'war-room-v1'; // bump the number when the file list changes
+const CACHE = 'war-room-v2'; // bump the number when the file list changes
 const SHELL = [
   './', 'index.html', 'icon.svg', 'icon-192.png', 'manifest.webmanifest', 'css/app.css', 'js/ai.js', 'js/app.js',
-  'js/campaign.js', 'js/country.js', 'js/events.js', 'js/forecast.js', 'js/hex.js', 'js/names.js', 'js/night.js',
-  'js/rng.js', 'js/ui/ask.js', 'js/ui/charts.js', 'js/ui/dom.js', 'js/ui/help.js', 'js/ui/hq.js', 'js/ui/map.js',
+  'js/campaign.js', 'js/country.js', 'js/debate.js', 'js/decisions.js', 'js/events.js', 'js/forecast.js', 'js/hex.js', 'js/names.js', 'js/night.js',
+  'js/rng.js', 'js/ui/ask.js', 'js/ui/charts.js', 'js/ui/debateview.js', 'js/ui/dom.js', 'js/ui/help.js', 'js/ui/hq.js', 'js/ui/map.js',
   'js/ui/nightview.js', 'js/ui/paper.js', 'js/ui/result.js', 'js/ui/title.js', 'fonts/big-shoulders-stencil.woff2',
   'fonts/libre-franklin.woff2', 'fonts/newsreader-italic.woff2', 'fonts/newsreader.woff2',
 ];

@@ -48,23 +48,72 @@ const pick = (page, name) => page.evaluate(n => {
   document.querySelector(`.board .reg[data-k="${k}"]`).dispatchEvent(new MouseEvent('click', { bubbles: true }));
 }, name);
 
-// Plays the strategist's weeks up to the start of `week`.
-async function playTo(page, week) {
+// Ends a week: says "vote anyway" if asked, and plays a debate (answering each question with
+// whatever beats the rival's natural style) if there is one. `onDebate` can take pictures.
+async function endWeek(page, onDebate) {
+  await page.click('.planbar .btn.stamp');
+  await page.waitForSelector('.paper, .debate, [role="alertdialog"]');
+  if (await page.locator('[role="alertdialog"]').count()) { await page.click('[role="alertdialog"] .btn.stamp'); await page.waitForSelector('.paper, .debate'); }
+  if (await page.locator('.debate').count()) {
+    const pick = await page.evaluate(() => {
+      const st = window.warroom.ctx.state;
+      const natural = { brawler: 'attack', wonk: 'facts', charmer: 'story', messenger: 'plan' }[st.cands[1 - st.side].temper];
+      return { facts: 'Go on the attack', plan: 'Walk through the facts', story: 'Pivot to your plan', attack: 'Tell a story' }[natural];
+    });
+    for (let q = 0; q < 4; q++) {
+      if (onDebate && q === 2) await onDebate('question');
+      await page.click(`.db-answer:has-text("${pick}")`);
+      if (onDebate && q === 2) await onDebate('answer');
+      await page.click('.db-stage .btn');
+    }
+    await page.click('.db-stage .btn');
+    await page.waitForSelector('.paper');
+  }
+}
+
+// Answers the paper's calls the way the strategist would.
+async function answerCalls(page, onCall) {
+  const cards = page.locator('.call');
+  if (onCall && await cards.count()) await onCall();
+  for (let i = 0; i < await cards.count(); i++) {
+    const hint = (await cards.nth(i).locator('.call-note').textContent()).replace(/^Your strategist would: |\.$/g, '');
+    const opts = cards.nth(i).locator('.call-opt:not([disabled])');
+    for (let j = 0; j < await opts.count(); j++) {
+      if ((await opts.nth(j).locator('b').textContent()).toLowerCase().startsWith(hint)) { await opts.nth(j).click(); break; }
+    }
+    if (await cards.nth(i).locator('.call-opt:not([disabled])').count()) await cards.nth(i).locator('.call-opt:not([disabled])').first().click();
+  }
+}
+
+// Plays the strategist's weeks up to the start of `week`, leaving that week's paper open.
+async function playTo(page, week, hooks = {}) {
   await page.click('text=Play this campaign');
   await page.click('.mate-card >> nth=0');
   for (let w = 1; w < week; w++) {
     await page.click('.planbar button:has-text("Strategist")');
-    await page.click('.planbar .btn.stamp');
-    await page.waitForSelector('.paper');
-    if (w < week - 1) await page.click('.paper-actions .btn');
+    await endWeek(page, hooks.onDebate);
+    if (w < week - 1) { await answerCalls(page); await page.click('.paper-actions .btn'); }
   }
 }
 
 // Phone screenshots for the README.
 {
   const page = await open({ width: 390, height: 844 }, 2);
-  await playTo(page, 4);
+  let debateShot = false;
+  await playTo(page, 5, {
+    onDebate: async when => {
+      if (debateShot && when === 'question') return;
+      if (when === 'answer') { debateShot = true; await page.waitForTimeout(600); await save(page, join(root, 'docs/phone-debate.png')); }
+    },
+  });
   await save(page, join(root, 'docs/phone-paper.png'));
+  // The first call on the page, scrolled into view.
+  if (await page.locator('.call').count()) {
+    await page.evaluate(() => { const c = document.querySelector('.call'); const o = document.querySelector('.overlay'); o.scrollTop = c.getBoundingClientRect().top + o.scrollTop - 20; });
+    await page.waitForTimeout(200);
+    await save(page, join(root, 'docs/phone-call.png'));
+  }
+  await answerCalls(page);
   await page.click('.paper-actions .btn');
   await page.click('.planbar button:has-text("Strategist")');
   await page.waitForTimeout(2800);
@@ -76,10 +125,10 @@ async function playTo(page, week) {
   await page.evaluate(() => { const p = document.querySelector('.side-col .panel'); window.scrollTo(0, p.getBoundingClientRect().top + scrollY - 70); });
   await page.waitForTimeout(300);
   await save(page, join(root, 'docs/phone-region.png'));
-  for (let w = 4; w <= 8; w++) {
-    if (w > 4) await page.click('.planbar button:has-text("Strategist")');
-    await page.click('.planbar .btn.stamp');
-    await page.waitForSelector('.paper');
+  for (let w = 5; w <= 8; w++) {
+    if (w > 5) await page.click('.planbar button:has-text("Strategist")');
+    await endWeek(page);
+    await answerCalls(page);
     await page.click('.paper-actions .btn');
   }
   await page.waitForSelector('.night');
@@ -98,6 +147,7 @@ async function playTo(page, week) {
 {
   const page = await open({ width: 1200, height: 800 }, 1);
   await playTo(page, 5);
+  await answerCalls(page);
   await page.click('.paper-actions .btn');
   await page.click('.planbar button:has-text("Strategist")');
   await page.waitForTimeout(2800);
