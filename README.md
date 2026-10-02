@@ -1,6 +1,6 @@
 # War Room
 
-**Play it: [junkdrawer.works/war-room](https://junkdrawer.works/war-room/)**
+**Play it: [war-room.junkdrawer.works](https://war-room.junkdrawer.works/)**
 
 **An election campaign played like a board game, on the map of a country that doesn’t exist.** You have eight weeks to win the presidency of Aldermere, region by region. Each week you move your candidate and running mate around the map, buy ads, open field offices and pay for polls, while your rival does the same where you can’t see it. When a scandal breaks you decide how to answer it, you take sides on the issues, and you face your rival in two debates. Then election night comes in one batch of votes at a time.
 

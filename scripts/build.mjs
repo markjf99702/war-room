@@ -31,6 +31,7 @@ for (const [, file] of css.matchAll(/url\('\.\.\/(fonts\/[^']+\.woff2)'\)/g)) cs
 if (/url\('\.\.\/fonts/.test(css)) throw new Error('a font was left unbundled');
 const icon = await dataUri('icon.svg', 'image/svg+xml');
 const html = (await read('index.html'))
+  .replace(/ *<script src="carry\.js"><\/script>\n/, '') // only needed at the game's own address
   .replace(/ *<link rel="(manifest|apple-touch-icon|preload)"[^>]*>\n/g, '')
   .replaceAll('"icon.svg"', () => `"${icon}"`)
   .replace('<link rel="stylesheet" href="css/app.css">', () => `<style>\n${css}</style>`)

@@ -4,7 +4,7 @@ import { h, margin, money, num, chance, plural, PARTY } from './dom.js';
 import { makeMap, glyph } from './map.js';
 import { adUnit, officeCost, estimate, sign, DIFFICULTY } from '../campaign.js';
 
-const SITE = 'https://junkdrawer.works/war-room/';
+const SITE = 'https://war-room.junkdrawer.works/';
 
 export function renderResult(root, ctx) {
   const { country, state: st } = ctx;
