@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import { makeCountry } from '../js/country.js';
 import { newCampaign, chooseMate, resolveWeek, emptyPlan } from '../js/campaign.js';
 import { decideAll } from '../js/ai.js';
+import { crisisDecisions } from '../js/decisions.js';
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -224,6 +225,25 @@ assert.ok(await tapThrough('.db-stage .btn', '.db-answer'));
 await page.click('.db-answer >> nth=1'); // a single click is never held back
 assert.ok(await tapThrough('.db-stage .btn', '.db-answer', 'mouse'));
 assert.equal(await page.locator('.db-log li').count(), 2, 'a stray tap or click answered a debate question');
+
+// A call made in a paper that came back after a reload counts at once: a promise to visit books the
+// candidate, and a call's cost comes off the money shown.
+const plantCall = () => {
+  const st = campaignAt('e2e-promise', 2);
+  st.pending = crisisDecisions(st, country, [{ kind: 'plant', region: 5, jobs: 1200, company: 'Harrow Steel' }], st.week);
+  st.history.at(-1).asks = st.pending.map(d => d.id);
+  decideAll(st, country, 1);
+  return st;
+};
+await load(plantCall());
+await page.click('.call-opt:has-text("Go to the plant gates")');
+await page.click('.paper-actions .btn');
+assert.match(await page.textContent('.pb-piece >> nth=0'), new RegExp(`Rally in ${country.regions[5].name}`), 'the promise booked the candidate');
+assert.match(await page.textContent('.side-col'), /You promised to go to/);
+await load(plantCall());
+await page.click('.call-opt:has-text("Promise a rescue fund")');
+await page.click('.paper-actions .btn');
+assert.equal(await page.textContent('#moneyChip'), `$${await page.evaluate(() => window.warroom.ctx.state.money[0])}M`, 'the money shown is what’s in the bank');
 
 // A challenge link starts the same campaign.
 await page.goto(`${base}?c=${seed}&p=1&d=easy&s=64`);

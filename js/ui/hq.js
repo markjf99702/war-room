@@ -399,7 +399,9 @@ export function renderHQ(root, ctx) {
   }
 
   refresh();
-  if (openFor(st, me).length && st.history.length && !document.querySelector('.paper')) showPaper(ctx, st.history.at(-1), () => {});
+  // Calls still waiting (after a reload): the paper comes back, and the war room is drawn again once they're
+  // made, so a promise to be somewhere books the candidate and a call's cost comes off the money shown.
+  if (openFor(st, me).length && st.history.length && !document.querySelector('.paper')) showPaper(ctx, st.history.at(-1), () => ctx.go('hq'));
 }
 
 function undecidedLine(poll, pub, g) {
