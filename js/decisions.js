@@ -310,6 +310,8 @@ export const promiseFor = (state, s) => {
   return d ? d.options.find(o => o.key === d.chosen).promise.region : null;
 };
 
+// Returns the money it costs, which comes out of the week's fundraising (resolveWeek), so it's paid even
+// when the bank is empty.
 function applyFx(state, s, fx, ledger = 'evt') {
   if (!fx) return 0;
   if (fx.nat) state.mood += sgn(s) * fx.nat;
@@ -317,8 +319,7 @@ function applyFx(state, s, fx, ledger = 'evt') {
     if (ledger === 'issue') state.regions[k].issue[s] += pts;
     else state.regions[k].evt += sgn(s) * pts;
   }
-  if (fx.money) state.money[s] = Math.max(0, state.money[s] + fx.money);
-  return fx.nat || 0;
+  return fx.money || 0;
 }
 
 // Plays out every decision made this week. Returns a story for each, for Monday's paper.
@@ -328,20 +329,20 @@ export function resolveDecisions(state, country, plans, week) {
     if (!d.chosen) d.chosen = d.defaultKey;
     const opt = d.options.find(o => o.key === d.chosen);
     const s = d.side;
-    let result = null, says = '';
+    let result = null, says = '', money = 0;
     if (opt.promise) {
       const kept = plans[s].cand === opt.promise.region;
-      applyFx(state, s, kept ? opt.promise.kept : opt.promise.broken);
+      money += applyFx(state, s, kept ? opt.promise.kept : opt.promise.broken);
       result = kept ? 'kept' : 'broken';
       says = kept ? `${state.cands[s].last} went, as promised.` : `${state.cands[s].last} promised to go and didn’t. It was noticed.`;
     } else if (opt.gamble) {
       const r = rng(`${state.seed}:call:${d.id}:${d.chosen}`);
       const win = r() < opt.gamble.p;
-      applyFx(state, s, win ? opt.gamble.win : opt.gamble.lose, 'evt');
+      money += applyFx(state, s, win ? opt.gamble.win : opt.gamble.lose, 'evt');
       result = win ? 'won' : 'lost';
       says = win ? opt.gamble.winSays : opt.gamble.loseSays;
     }
-    if (opt.sure) applyFx(state, s, opt.sure);
+    if (opt.sure) money += applyFx(state, s, opt.sure);
     if (opt.stance?.regions) applyFx(state, s, { regions: opt.stance.regions }, 'issue');
     if (opt.stance) state.stances[s][opt.stance.issue] = { option: opt.stance.option, week, applied: opt.stance.regions || [] };
     if (opt.flip) {
@@ -351,7 +352,7 @@ export function resolveDecisions(state, country, plans, week) {
       state.stances[s][opt.flip.issue] = { option: opt.flip.option, week, applied: opt.flip.regions, flipped: true, resurfaced: true };
     }
     d.result = result;
-    stories.push({ id: d.id, side: s, kind: d.kind, title: d.title, choice: opt.label, result, says: says || opt.done || '' });
+    stories.push({ id: d.id, side: s, kind: d.kind, title: d.title, choice: opt.label, result, says: says || opt.done || '', money });
   }
   return stories;
 }

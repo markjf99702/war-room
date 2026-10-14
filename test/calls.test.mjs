@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { makeCountry } from '../js/country.js';
-import { newCampaign, chooseMate, resolveWeek, emptyPlan, ownEffect, trueMargin } from '../js/campaign.js';
+import { newCampaign, chooseMate, resolveWeek, emptyPlan, ownEffect, trueMargin, planCost, income } from '../js/campaign.js';
 import { planFor, decideAll, decide } from '../js/ai.js';
 import { choose, openFor, promiseFor, crisisDecisions, issueDecisions, ISSUES } from '../js/decisions.js';
 import { debateSetup, autoAnswers, exchange, debateOutcome, STYLE_KEYS } from '../js/debate.js';
@@ -41,6 +41,21 @@ test('a call costs its price, and one you can’t afford is refused', () => {
   assert.equal(choose(st, d.id, 'subject'), false, '$4M option with $3M in the bank');
   assert.equal(choose(st, d.id, 'fire'), true);
   assert.equal(choose(st, d.id, 'stand'), false, 'only one answer');
+});
+
+test('firing someone costs $3M of the week’s fundraising, even with nothing left in the bank', () => {
+  for (const spend of [false, true]) {
+    const st = fresh('fire-1');
+    const [d] = crisisDecisions(st, country, [{ kind: 'scandal', side: 0, thing: 'a donor’s yacht trip', role: 'campaign chair' }], st.week);
+    st.pending.push(d);
+    choose(st, d.id, 'fire');
+    const p = blank();
+    if (spend) for (let k = 0; planCost(p, country) < st.money[0]; k++) { p.ads[k] = 1; if (planCost(p, country) > st.money[0]) p.ads[k] = 0; }
+    const before = st.money[0], cost = planCost(p, country);
+    const h = resolveWeek(st, country, [p, blank()]);
+    assert.equal(h.income[0], income(st, 0, p) - 3, 'raised $3M less');
+    assert.equal(st.money[0], before - cost + income(st, 0, p) - 3, `spent ${cost} of ${before}`);
+  }
 });
 
 test('unanswered calls fall back to their default, and gambles replay the same way', () => {

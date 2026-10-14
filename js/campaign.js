@@ -384,8 +384,8 @@ export function resolveWeek(state, country, rawPlans, opts = {}) {
   news.push(...stories);
   if (w === WEEKS) { const wx = finalWeather(state, country, w); if (wx) news.push(wx); }
 
-  // Money for next week.
-  const got = [0, 1].map(s => income(state, s, plans[s]));
+  // Money for next week, less what the calls cost (firing someone means $3M less raised).
+  const got = [0, 1].map(s => Math.max(0, income(state, s, plans[s]) + calls.reduce((a, c) => a + (c.side === s ? c.money || 0 : 0), 0)));
   for (const s of [0, 1]) state.money[s] += got[s];
 
   // What needs an answer next Monday: the fallout from this week's news, or failing that an issue
