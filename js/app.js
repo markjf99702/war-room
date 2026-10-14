@@ -47,13 +47,22 @@ const ctx = {
   },
   // The player is done planning: the rival plans too, there may be a debate, the week happens,
   // the rival makes its calls for next week, and the paper comes out.
+  // A debate is saved as it goes, with both plans, so a reload picks it up at the next question
+  // instead of going back to the war room to play the same debate again knowing the rival's answers.
   endWeek() {
     const st = ctx.state, me = st.side, rival = 1 - me;
     const level = DIFFICULTY[st.difficulty].ai;
-    const plan = clampPlan(st.plans[me], st, country, me);
-    const theirs = planFor(st, country, rival, level);
-    const plans = me === 0 ? [plan, theirs] : [theirs, plan];
+    const going = st.debating?.week === st.week ? st.debating : null;
+    let plans;
+    if (going) plans = going.plans;
+    else {
+      const plan = clampPlan(st.plans[me], st, country, me);
+      const theirs = planFor(st, country, rival, level);
+      plans = me === 0 ? [plan, theirs] : [theirs, plan];
+    }
+    const plan = plans[me];
     const finish = answers => {
+      delete st.debating;
       st.forecasts[me].push({ week: st.week, p: forecast(st, country, me, plan).p });
       const entry = resolveWeek(st, country, plans, answers ? { debate: { answers: me === 0 ? [answers, null] : [null, answers] } } : {});
       decideAll(st, country, rival, level);
@@ -63,10 +72,12 @@ const ctx = {
       showPaper(ctx, entry, () => go(st.phase === 'night' ? 'night' : 'hq'));
     };
     if (DEBATE_WEEKS.includes(st.week)) {
+      if (!going) { st.debating = { week: st.week, plans, answers: [] }; ctx.save(); }
       root.replaceChildren();
       root.className = 'app screen-debate';
       window.scrollTo(0, 0);
-      renderDebate(root, ctx, { plans, onDone: finish });
+      const onAnswer = (i, k) => { st.debating.answers[i] = k; ctx.save(); };
+      renderDebate(root, ctx, { plans, answered: st.debating.answers, onAnswer, onDone: finish });
     } else finish();
   },
   finishNight() {
@@ -111,7 +122,8 @@ function readInvite() {
 function go(screen) {
   const st = ctx.state;
   if (screen === 'resume') {
-    screen = !st ? 'title' : st.phase === 'mate' ? 'ticket' : st.phase === 'plan' ? 'hq' : st.phase === 'night' ? 'night' : 'result';
+    const debating = !!st && st.debating?.week === st.week;
+    screen = !st ? 'title' : st.phase === 'mate' ? 'ticket' : st.phase === 'plan' ? (debating ? 'debate' : 'hq') : st.phase === 'night' ? 'night' : 'result';
   }
   root.replaceChildren();
   root.className = `app screen-${screen}`;
@@ -124,6 +136,7 @@ function go(screen) {
   if (screen === 'title') renderTitle(root, ctx);
   else if (screen === 'ticket') { root.append(header()); renderTicket(root, ctx); }
   else if (screen === 'hq') { root.append(header()); renderHQ(root, ctx); }
+  else if (screen === 'debate') ctx.endWeek();
   else if (screen === 'night') renderNight(root, ctx);
   else if (screen === 'result') { root.append(header()); renderResult(root, ctx); }
   else if (screen === 'blank') root.append(header());

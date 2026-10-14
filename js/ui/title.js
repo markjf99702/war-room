@@ -33,7 +33,7 @@ export function renderTitle(root, ctx) {
     h('p', { style: 'margin:0 0 10px' }, st.phase === 'mate'
       ? `${st.cands[st.side].name} still needs a running mate.`
       : st.phase === 'plan'
-        ? `Week ${st.week} of ${WEEKS}: ${st.cands[st.side].name} (${PARTY[st.side]}) against ${st.cands[1 - st.side].name}.`
+        ? `Week ${st.week} of ${WEEKS}: ${st.cands[st.side].name} (${PARTY[st.side]}) against ${st.cands[1 - st.side].name}.${st.debating?.week === st.week ? ' The debate is under way.' : ''}`
         : 'The polls are closing. Election night is waiting.'),
     h('button', { class: 'btn', type: 'button', onclick: () => ctx.go('resume') }, 'Carry on')) : null;
 

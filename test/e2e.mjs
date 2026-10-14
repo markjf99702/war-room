@@ -382,6 +382,37 @@ await page.emulateMedia({ colorScheme: 'light' });
   for (const v of verdicts) assert.doesNotMatch(v, /−\d/, 'the verdict names who won it');
 }
 
+// A reload in the middle of a debate picks it up at the next question, with the answers already given and
+// the week's plans as they were, rather than going back to the war room to play it again knowing the rival's answers.
+{
+  const st = campaignAt('e2e-debate-reload', 3);
+  const k = country.regions.findIndex(g => g.name === 'New Aldham');
+  st.plans[0].cand = k;
+  await load(st);
+  await page.click('.planbar .btn.stamp');
+  await page.waitForSelector('.debate');
+  await page.click('.db-answer >> nth=2'); // pivot to the plan
+  const first = await page.textContent('.db-log li');
+  await page.reload();
+  await page.waitForSelector('.debate');
+  assert.equal(await page.locator('.planbar').count(), 0, 'a reload went back to the war room');
+  assert.deepEqual(await page.$$eval('.db-log li', lis => lis.map(li => li.textContent)), [first], 'the first answer stands');
+  assert.equal(await page.textContent('.db-qn'), 'Question 2 of 4');
+  await fits('a debate picked up after a reload');
+  for (let q = 1; q < 4; q++) {
+    await page.click('.db-answer >> nth=0');
+    await page.click('.db-stage .btn');
+  }
+  // Reloaded again at the snap poll, it's still the snap poll.
+  await page.reload();
+  await page.waitForSelector('.db-snap');
+  assert.equal(await page.locator('.db-log li').count(), 4);
+  await page.click('.db-stage .btn');
+  await page.waitForSelector('.paper');
+  const after = await page.evaluate(() => { const s = window.warroom.ctx.state, e = s.history.at(-1); return { week: s.week, debating: s.debating ?? null, mine: e.debate.answers[0], cand: e.plans[0].cand }; });
+  assert.deepEqual(after, { week: 4, debating: null, mine: ['plan', 'attack', 'attack', 'attack'], cand: k });
+}
+
 // The morning after, in words: "You polled it once", and a miss that rounds to nothing is just 0.
 {
   const st = newCampaign(country, { seed: 'e2e-result-2' });

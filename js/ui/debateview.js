@@ -1,9 +1,11 @@
 // A debate you take part in: four questions, pick how to answer each, see how the rival answered.
+// `answered` holds answers already given (a debate picked up after a reload); onAnswer(i, style) is told
+// of each new one as it's given, so it can be saved.
 
 import { h, settle } from './dom.js';
 import { STYLES, STYLE_KEYS, TEMPERS, debateSetup, autoAnswers, exchange, debateOutcome, fitFor, whyText, TOPIC_NAMES } from '../debate.js';
 
-export function renderDebate(root, ctx, { plans, onDone }) {
+export function renderDebate(root, ctx, { plans, answered = [], onAnswer, onDone }) {
   const { country, state: st } = ctx;
   const me = st.side, them = 1 - me;
   document.querySelector('.toast')?.remove();
@@ -64,13 +66,26 @@ export function renderDebate(root, ctx, { plans, onDone }) {
     stage.querySelector('.db-answer').focus({ preventScroll: true });
   }
 
-  function answer(i, k) {
+  // An answer counts as soon as it's given: the exchange is scored, logged and put on the meter.
+  function score(i, k) {
     mine[i] = k;
     const answers = me === 0 ? [mine, rivalAnswers] : [rivalAnswers, mine];
     const ex = exchange(st, country, setup, i, answers, prepped);
     const pts = sg(ex.score);
     running += pts;
     const dial = Math.round(pts * 3);
+    log.append(h('li', {}, h('span', {}, `Q${i + 1}`), ` You ${STYLES[k].short}; ${rival.last} ${STYLES[rivalAnswers[i]].short}. `, h('b', { class: pts > 0.5 ? 'won' : pts < -0.5 ? 'lost' : '' }, dial > 0 ? `+${dial}` : dial < 0 ? `−${Math.abs(dial)}` : '0')));
+    const width = Math.max(-1, Math.min(1, running / 14));
+    meter.style.left = width >= 0 ? '50%' : `${50 + width * 50}%`;
+    meter.style.width = `${Math.abs(width) * 50}%`;
+    meter.style.background = running >= 0 ? 'var(--mine)' : 'var(--theirs)';
+    meterNum.textContent = Math.abs(running) < 1.5 ? 'Too close to call' : `${running > 0 ? you.last : rival.last} ahead`;
+    return { ex, pts, dial };
+  }
+
+  function answer(i, k) {
+    const { ex, pts, dial } = score(i, k);
+    onAnswer?.(i, k);
     const verdict = Math.abs(dial) < 2 ? 'The focus group barely moved.' : `Focus group: +${Math.abs(dial)} for ${dial > 0 ? you.last : rival.last}.`;
     const why = whyText(ex.why, s => (s === me ? 'You' : rival.last)).replace('You’s', 'Your');
     stage.replaceChildren(
@@ -84,12 +99,6 @@ export function renderDebate(root, ctx, { plans, onDone }) {
         : h('button', { type: 'button', class: 'btn big', onclick: finish }, 'Closing statements →'));
     settle();
     stage.querySelector('.btn').focus({ preventScroll: true });
-    log.append(h('li', {}, h('span', {}, `Q${i + 1}`), ` You ${STYLES[k].short}; ${rival.last} ${STYLES[rivalAnswers[i]].short}. `, h('b', { class: pts > 0.5 ? 'won' : pts < -0.5 ? 'lost' : '' }, dial > 0 ? `+${dial}` : dial < 0 ? `−${Math.abs(dial)}` : '0')));
-    const width = Math.max(-1, Math.min(1, running / 14));
-    meter.style.left = width >= 0 ? '50%' : `${50 + width * 50}%`;
-    meter.style.width = `${Math.abs(width) * 50}%`;
-    meter.style.background = running >= 0 ? 'var(--mine)' : 'var(--theirs)';
-    meterNum.textContent = Math.abs(running) < 1.5 ? 'Too close to call' : `${running > 0 ? you.last : rival.last} ahead`;
   }
 
   function finish() {
@@ -106,7 +115,10 @@ export function renderDebate(root, ctx, { plans, onDone }) {
     stage.querySelector('.btn').focus({ preventScroll: true });
   }
 
-  ask(0);
+  // Questions answered before a reload stay answered; carry on from the next one.
+  for (const k of answered) if (STYLES[k] && mine.length < setup.topics.length) score(mine.length, k);
+  if (mine.length >= setup.topics.length) finish();
+  else ask(mine.length);
 }
 
 const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
