@@ -297,6 +297,19 @@ assert.equal(await page.locator('.side-col [aria-live]').count(), 0);
 await page.click('.seg button >> nth=1');
 assert.match(await page.textContent('.hq > [aria-live]'), /^\$\d+M left\. .+ to win\.$/);
 
+// A phone on its side: the candidate's menu in a debate week (its longest) stays on screen.
+{
+  const st = campaignAt('e2e-landscape', 3);
+  st.plans[0].cand = 2;
+  await page.setViewportSize({ width: 844, height: 390 });
+  await load(st);
+  await page.click('.pb-piece >> nth=0');
+  const box = await page.locator('.piece-menu').boundingBox();
+  assert.ok(box.y >= 0, `the piece menu starts ${box.y}px from the top`);
+  await page.keyboard.press('Escape');
+  await page.setViewportSize({ width: 390, height: 844 });
+}
+
 // In dark mode the pressed buttons, the pieces, the ratings and the rival's ghost pieces can be read, and
 // the confirm box's buttons too, its own button being the red one.
 await page.emulateMedia({ colorScheme: 'dark' });

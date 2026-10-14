@@ -153,7 +153,7 @@ export function renderHQ(root, ctx) {
       h('p', { style: 'margin-top:6px' }, 'To hold a rally, tap a region on the map and send them there.'));
     document.body.append(menu);
     closePieceMenu = close;
-    (menu.querySelector('[aria-pressed="true"]') || menu.querySelector('button')).focus();
+    (menu.querySelector('[aria-pressed="true"]') || menu.querySelector('button')).focus({ preventScroll: true });
     setTimeout(() => document.addEventListener('click', outside, true));
     document.addEventListener('keydown', onKey);
   }

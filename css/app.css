@@ -335,6 +335,8 @@ a { color: var(--tide); }
 .pb-money small { display: block; font-weight: 600; font-size: 12px; color: var(--muted); }
 .pb-row .grow { flex: 1; }
 .piece-menu { position: fixed; z-index: 45; left: 12px; right: 12px; bottom: calc(118px + env(safe-area-inset-bottom)); max-width: 420px; margin: 0 auto; background: var(--card); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 10px; display: grid; gap: 6px; }
+/* A phone on its side has little room above the plan bar: the menu scrolls rather than running off the top. */
+.piece-menu { max-height: calc(100vh - 130px - env(safe-area-inset-bottom)); max-height: calc(100dvh - 130px - env(safe-area-inset-bottom)); overflow-y: auto; overscroll-behavior: contain; }
 .piece-menu p { margin: 2px 4px 6px; font-size: 14px; color: var(--muted); }
 .piece-menu button { text-align: left; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--paper); font-weight: 700; }
 .piece-menu button small { display: block; font-weight: 500; color: var(--muted); font-size: 13px; }
