@@ -397,6 +397,13 @@ await page.emulateMedia({ colorScheme: 'light' });
   await page.click('.layer-tabs button:nth-child(4)');
   const badges = await page.$$eval('.board .badge text', ts => ts.map(t => t.textContent));
   assert.ok(badges.includes('0') && !badges.some(b => /^[+−]0$/.test(b)), `the model's misses: ${badges.join(' ')}`);
+  // On a wide screen the board is wider than the map, and it's sea all the way across.
+  await page.setViewportSize({ width: 1280, height: 800 });
+  assert.ok(await page.evaluate(() => {
+    const svg = document.querySelector('.board .map'), board = svg.getBoundingClientRect(), waves = svg.querySelector('rect[fill^="url"]').getBoundingClientRect();
+    return waves.left <= board.left && waves.right >= board.right && waves.top <= board.top && waves.bottom >= board.bottom;
+  }), 'the waves stop short of the edges of the board');
+  await page.setViewportSize({ width: 390, height: 844 });
 }
 
 // A challenge link starts the same campaign.

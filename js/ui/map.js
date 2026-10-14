@@ -39,8 +39,10 @@ export function makeMap(country, { onPick, compact = false, cls = '' } = {}) {
       s('feDropShadow', { dx: 0, dy: 1, stdDeviation: 0.9, 'flood-color': '#000', 'flood-opacity': 0.35 })),
   );
   svg.append(defs);
-  svg.append(s('rect', { x: x0, y: y0, width: vw, height: vh, fill: 'var(--sea)', class: 'sea' }));
-  svg.append(s('rect', { x: x0, y: y0, width: vw, height: vh, fill: `url(#${id}-sea)` }));
+  // The sea runs on past the frame, so a board wider or taller than the map (the result, on a wide screen) is
+  // all sea, waves included.
+  svg.append(s('rect', { x: x0 - vw, y: y0 - vh, width: vw * 3, height: vh * 3, fill: 'var(--sea)', class: 'sea' }));
+  svg.append(s('rect', { x: x0 - vw, y: y0 - vh, width: vw * 3, height: vh * 3, fill: `url(#${id}-sea)` }));
 
   // A soft shadow under the land, so it sits on the sea like a board piece.
   const landD = land.map(h => hexPath(h, SIZE + 0.4)).join('');
