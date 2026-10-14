@@ -1,6 +1,6 @@
 // A debate you take part in: four questions, pick how to answer each, see how the rival answered.
 
-import { h } from './dom.js';
+import { h, settle } from './dom.js';
 import { STYLES, STYLE_KEYS, TEMPERS, debateSetup, autoAnswers, exchange, debateOutcome, fitFor, whyText, TOPIC_NAMES } from '../debate.js';
 
 export function renderDebate(root, ctx, { plans, onDone }) {
@@ -60,6 +60,7 @@ export function renderDebate(root, ctx, { plans, onDone }) {
       h('div', { class: 'db-q' }, h('div', { class: 'db-qn' }, `Question ${i + 1} of ${setup.topics.length}`), h('p', {}, `“${t.q}”`)),
       h('div', { class: 'db-answers' }, btns),
       loop);
+    settle();
     stage.querySelector('.db-answer').focus({ preventScroll: true });
   }
 
@@ -81,6 +82,7 @@ export function renderDebate(root, ctx, { plans, onDone }) {
       i + 1 < setup.topics.length
         ? h('button', { type: 'button', class: 'btn big', onclick: () => ask(i + 1) }, 'Next question →')
         : h('button', { type: 'button', class: 'btn big', onclick: finish }, 'Closing statements →'));
+    settle();
     stage.querySelector('.btn').focus({ preventScroll: true });
     log.append(h('li', {}, h('span', {}, `Q${i + 1}`), ` You ${STYLES[k].short}; ${rival.last} ${STYLES[rivalAnswers[i]].short}. `, h('b', { class: pts > 0.5 ? 'won' : pts < -0.5 ? 'lost' : '' }, dial > 0 ? `+${dial}` : dial < 0 ? `−${Math.abs(dial)}` : '0')));
     const width = Math.max(-1, Math.min(1, running / 14));
@@ -100,6 +102,7 @@ export function renderDebate(root, ctx, { plans, onDone }) {
         h('p', { class: 'db-snap num' }, `${you.last} ${out.snap[me]}% · ${rival.last} ${out.snap[them]}%`),
         h('p', {}, won ? `A win. Expect about +${out.bump.toFixed(1)} everywhere by Monday.` : lost ? `A loss. Expect about −${out.bump.toFixed(1)} everywhere by Monday.` : 'A draw. Nobody moved.')),
       h('button', { type: 'button', class: 'btn big', onclick: () => onDone(mine) }, 'On to Monday’s paper →'));
+    settle();
     stage.querySelector('.btn').focus({ preventScroll: true });
   }
 

@@ -6,6 +6,9 @@ import { readFile, readdir } from 'node:fs/promises';
 import { join, dirname, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
+import { makeCountry } from '../js/country.js';
+import { newCampaign, chooseMate, resolveWeek, emptyPlan } from '../js/campaign.js';
+import { decideAll } from '../js/ai.js';
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -74,6 +77,37 @@ const pick = name => page.evaluate(n => {
   const k = window.warroom.country.regions.findIndex(g => g.name === n);
   document.querySelector(`.board .reg[data-k="${k}"]`).dispatchEvent(new MouseEvent('click', { bubbles: true }));
 }, name);
+const mine = () => page.evaluate(() => { const s = window.warroom.ctx.state; return { week: s.week, chosen: s.pending.filter(d => d.side === s.side && d.chosen).length }; });
+// A quick double tap: the first tap changes the screen, and the second lands on whatever is under the finger
+// now (`then`). Dispatched in the page, so the second tap comes at once. With 'mouse' it's a double click.
+const tapThrough = (first, then, how = 'touch') => page.evaluate(([a, b, how]) => {
+  const tap = (el, detail) => {
+    el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: how }));
+    el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail }));
+  };
+  tap(document.querySelector(a), 1);
+  const next = document.querySelector(b);
+  if (next) tap(next, how === 'mouse' ? 2 : 1);
+  return !!next;
+}, [first, then, how]);
+
+// Campaigns set up in Node and put in storage: Tidewater on Normal, played with empty plans and the
+// computer's calls up to the start of `week`.
+const country = makeCountry();
+function campaignAt(seed, week) {
+  const st = newCampaign(country, { seed });
+  chooseMate(st, country, 0, 0);
+  while (st.week < week) {
+    resolveWeek(st, country, [emptyPlan(country.regions.length), emptyPlan(country.regions.length)]);
+    for (const s of [0, 1]) decideAll(st, country, s);
+  }
+  return st;
+}
+const load = async st => {
+  await page.evaluate(s => localStorage.setItem('war-room:game', s), JSON.stringify(st));
+  await page.reload();
+  await page.waitForTimeout(450); // a person takes longer than this to tap anything after the page appears
+};
 
 await page.goto(base);
 await page.evaluate(() => document.fonts.ready);
@@ -82,7 +116,14 @@ await fits('the title screen');
 // A new campaign, as Highland on Easy.
 await page.click('.party-card[data-side="1"]');
 await page.click('.diff-pick button[data-key="easy"]');
-await page.click('text=Start a campaign');
+// Started with a quick double tap: the second tap lands on a running mate, and is ignored.
+await page.locator('text=Start a campaign').scrollIntoViewIfNeeded();
+const start = await page.locator('text=Start a campaign').boundingBox();
+const [sx, sy] = [start.x + start.width / 2, start.y + start.height / 2];
+await page.touchscreen.tap(sx, sy);
+await page.touchscreen.tap(sx, sy);
+assert.equal(await page.evaluate(() => window.warroom.ctx.state.phase), 'mate', 'a stray tap picked the running mate');
+assert.ok(await page.evaluate(([x, y]) => !!document.elementFromPoint(x, y)?.closest('.mate-card'), [sx, sy]), 'the second tap was over a running mate');
 assert.match(await page.textContent('.ticket'), /Pick a running mate/);
 await fits('the ticket');
 await page.click('.mate-card >> nth=1');
@@ -150,8 +191,31 @@ for (const n of [2, 3, 4]) await page.click(`.layer-tabs button:nth-child(${n})`
 const record = await page.evaluate(() => JSON.parse(localStorage.getItem('war-room:record')));
 assert.equal(record.played, 1);
 
-// A challenge link starts the same campaign.
 const seed = await page.evaluate(() => window.warroom.ctx.state.seed);
+
+// A quick double tap never answers for you. End week: the second tap lands on a call in Monday's paper.
+await load(campaignAt('e2e-taps', 2));
+assert.ok(await tapThrough('.planbar .btn.stamp', '.paper .call-opt:not([disabled])'), 'the paper asks for a call');
+assert.equal((await mine()).chosen, 0, 'a stray tap made a call');
+await page.waitForTimeout(450);
+await answerCalls();
+// "Plan week 3": the second tap lands on End week.
+assert.ok(await tapThrough('.paper-actions .btn', '.planbar .btn.stamp'));
+assert.equal(await page.evaluate(() => document.querySelector('#app').className), 'app screen-hq', 'a stray tap ended the week');
+assert.equal((await mine()).week, 3, 'a stray tap ended the week');
+assert.equal(await page.locator('.paper').count(), 0);
+// The debate: End week, then Next question, each tapped twice; and a double click on Next question.
+await page.waitForTimeout(450);
+assert.ok(await tapThrough('.planbar .btn.stamp', '.db-answer'));
+assert.equal(await page.locator('.db-log li').count(), 0, 'a stray tap answered a debate question');
+await page.click('.db-answer >> nth=0');
+await page.waitForTimeout(450);
+assert.ok(await tapThrough('.db-stage .btn', '.db-answer'));
+await page.click('.db-answer >> nth=1'); // a single click is never held back
+assert.ok(await tapThrough('.db-stage .btn', '.db-answer', 'mouse'));
+assert.equal(await page.locator('.db-log li').count(), 2, 'a stray tap or click answered a debate question');
+
+// A challenge link starts the same campaign.
 await page.goto(`${base}?c=${seed}&p=1&d=easy&s=64`);
 assert.match(await page.textContent('.title-screen'), /Someone sent you this campaign/);
 

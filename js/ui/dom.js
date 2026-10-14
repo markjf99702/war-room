@@ -20,6 +20,22 @@ function build(el, attrs, kids) {
   return el;
 }
 
+// A quick double tap sends its second tap to whatever the first one just put under the finger: a call in
+// Monday's paper, a running mate, a debate answer. So for a moment after the screen changes (settle()),
+// taps and the second click of a double click are ignored. A single click or a key press always goes through,
+// and so does the first tap after the page loads.
+let calmUntil = 0, lastPointer = null;
+export function guardTaps() {
+  document.addEventListener('pointerdown', e => { lastPointer = e.pointerType; }, true);
+  document.addEventListener('click', e => {
+    if (performance.now() < calmUntil && e.detail > 0 && (lastPointer !== 'mouse' || e.detail > 1)) {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+    }
+  }, true);
+}
+export function settle(ms = 400) { if (lastPointer) calmUntil = performance.now() + ms; }
+
 export const h = (tag, attrs, ...kids) => build(document.createElement(tag), attrs, kids);
 export const s = (tag, attrs, ...kids) => build(document.createElementNS(SVG_NS, tag), attrs, kids);
 export const $ = (sel, root = document) => root.querySelector(sel);

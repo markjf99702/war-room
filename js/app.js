@@ -5,7 +5,7 @@ import { newCampaign, chooseMate, resolveWeek, finalResult, clampPlan, WEEKS, DE
 import { planFor, decideAll } from './ai.js';
 import { forecast } from './forecast.js';
 import { DIFFICULTY } from './campaign.js';
-import { h, $, money } from './ui/dom.js';
+import { h, $, money, guardTaps, settle } from './ui/dom.js';
 import { renderTitle, renderTicket } from './ui/title.js';
 import { renderHQ } from './ui/hq.js';
 import { showPaper } from './ui/paper.js';
@@ -119,6 +119,7 @@ function go(screen) {
   else if (screen === 'night') renderNight(root, ctx);
   else if (screen === 'result') { root.append(header()); renderResult(root, ctx); }
   else if (screen === 'blank') root.append(header());
+  settle();
 }
 
 function header() {
@@ -173,6 +174,8 @@ function toast(msg, ms = 2600) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.remove(), ms);
 }
+
+guardTaps();
 
 // Old saves from a different version of the rules aren't worth trying to rescue.
 if (ctx.state && ctx.state.v !== 2) { ctx.state = null; store.del(KEY); }

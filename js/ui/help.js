@@ -1,6 +1,6 @@
 // How to play.
 
-import { h, s, jdFoot } from './dom.js';
+import { h, s, jdFoot, settle } from './dom.js';
 import { glyph } from './map.js';
 import { WEEKS, FUNDRAISE, INCOME, POLL_COST, OFFICE_GAIN, DEBATE_WEEKS } from '../campaign.js';
 
@@ -36,8 +36,9 @@ export function showHelp(ctx) {
     jdFoot());
   const overlay = h('div', { class: 'overlay', onclick: e => { if (e.target === overlay) close(); } }, sheet);
   const onKey = e => { if (e.key === 'Escape') close(); };
-  function close() { overlay.remove(); document.body.style.overflow = ''; document.removeEventListener('keydown', onKey); }
+  function close() { overlay.remove(); document.body.style.overflow = ''; document.removeEventListener('keydown', onKey); settle(); }
   document.addEventListener('keydown', onKey);
   document.body.style.overflow = 'hidden';
   document.body.append(overlay);
+  settle();
 }

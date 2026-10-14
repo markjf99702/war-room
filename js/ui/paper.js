@@ -1,6 +1,6 @@
 // Monday's paper: what happened last week, the public polls, and your pollster's private memo.
 
-import { h, margin, marginLong, money, num, mondayOf, PARTY } from './dom.js';
+import { h, margin, marginLong, money, num, mondayOf, settle, PARTY } from './dom.js';
 import { WEEKS, AD_NAMES } from '../campaign.js';
 import { choose } from '../decisions.js';
 import { decide } from '../ai.js';
@@ -120,10 +120,11 @@ export function showPaper(ctx, entry, onDone) {
   document.querySelector('.toast')?.remove();
   const overlay = h('div', { class: 'overlay', onclick: e => { if (e.target === overlay && !onDone) close(); } }, paper);
   const onKey = e => { if (e.key === 'Escape' && !onDone) close(); };
-  function close() { overlay.remove(); document.body.style.overflow = ''; document.removeEventListener('keydown', onKey); }
+  function close() { overlay.remove(); document.body.style.overflow = ''; document.removeEventListener('keydown', onKey); settle(); }
   document.addEventListener('keydown', onKey);
   document.body.style.overflow = 'hidden';
   document.body.append(overlay);
+  settle();
   overlay.scrollTop = 0;
   (next.disabled ? paper.querySelector('.call-opt') : next)?.focus({ preventScroll: true });
   return close;
