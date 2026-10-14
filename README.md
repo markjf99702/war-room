@@ -48,6 +48,7 @@ npm run build                 # bundles everything into dist/war-room.html, one 
 node dev/balance.mjs 100      # plays strategies against each other, to check the game is fair
 node dev/calibrate.mjs 50     # checks the forecast is honest: when it says 70%, does that side win about 70%?
 node dev/debates.mjs          # how much playing the debates well is worth
+npm run sim -- 200            # how often a Strategist-button player, a newcomer and a random player win at each difficulty
 ```
 
 To put it online with GitHub Pages: **Settings → Pages → Build and deployment → Deploy from a branch**, then pick `main` and `/ (root)`.
@@ -66,4 +67,4 @@ To put it online with GitHub Pages: **Settings → Pages → Build and deploymen
 - `fonts/`: Libre Franklin, Big Shoulders Stencil and Newsreader (SIL Open Font License), served from here so nothing loads from elsewhere.
 - `sw.js`: keeps a copy for playing offline.
 - `test/`: the rules in Node, and a whole campaign played through the real page.
-- `dev/`: tools used while building it: map previews, balance and calibration runs, a traced campaign.
+- `dev/`: tools used while building it: map previews, balance and calibration runs, the difficulty ladder, a traced campaign.
