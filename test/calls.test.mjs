@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { makeCountry } from '../js/country.js';
 import { newCampaign, chooseMate, resolveWeek, emptyPlan, ownEffect, trueMargin, planCost, income } from '../js/campaign.js';
 import { planFor, decideAll, decide } from '../js/ai.js';
-import { choose, openFor, promiseFor, crisisDecisions, issueDecisions, ISSUES } from '../js/decisions.js';
+import { choose, openFor, promiseFor, crisisDecisions, issueDecisions, resurfaceDecision, resolveDecisions, ISSUES } from '../js/decisions.js';
 import { debateSetup, autoAnswers, exchange, debateOutcome, STYLE_KEYS } from '../js/debate.js';
 
 const country = makeCountry();
@@ -135,6 +135,31 @@ test('a position on an issue moves the regions it names, and counts as your own 
   resolveWeek(st, country, [blank(), blank()]);
   assert.ok(Math.abs(ownEffect(st.regions[k], 0) - own - opt.stance.regions[0][1]) < 1e-9);
   assert.ok(st.stances[0][d.issue], 'it’s on the record');
+});
+
+test('changing your mind undoes the old position, even one taken as a gamble', () => {
+  for (const [issue, first] of [['vesland', 'firm'], ['housing', 'cap'], ['farms', 'extend']]) {
+    for (const seed of ['flip-1', 'flip-2', 'flip-3', 'flip-4']) {
+      const st = fresh(seed);
+      const points = () => st.regions.map(r => r.evt + r.issue[0] - r.issue[1]); // side 0's, in each region
+      st.issuesSeen = ISSUES.filter(i => i.key !== issue).map(i => i.key);
+      const [d] = issueDecisions(st, country, 1);
+      st.pending = [d];
+      choose(st, d.id, first);
+      const before = points();
+      const [took] = resolveDecisions(st, country, [blank(), blank()], 1);
+      // The issue comes back in week 3 and side 0 changes its mind.
+      let again = null;
+      for (let t = 0; !again; t++) again = resurfaceDecision({ ...st, seed: `${seed}-${t}` }, country, 0, 3);
+      st.pending = [again];
+      assert.ok(choose(st, again.id, 'switch'));
+      const now = again.options.find(o => o.key === 'switch').flip.regions;
+      resolveDecisions(st, country, [blank(), blank()], 3);
+      const want = before.map((p, k) => p + now.filter(([j]) => j === k).reduce((a, [, x]) => a + x, 0));
+      points().forEach((p, k) => assert.ok(Math.abs(p - want[k]) < 1e-9,
+        `${issue}: ${first} (${took.result || 'sure'}) left ${(p - want[k]).toFixed(2)} in ${country.regions[k].name} after switching`));
+    }
+  }
 });
 
 test('every issue offers a real choice', () => {

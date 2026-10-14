@@ -356,10 +356,19 @@ export function resolveDecisions(state, country, plans, week) {
     }
     if (opt.sure) money += applyFx(state, s, opt.sure);
     if (opt.stance?.regions) applyFx(state, s, { regions: opt.stance.regions }, 'issue');
-    if (opt.stance) state.stances[s][opt.stance.issue] = { option: opt.stance.option, week, applied: opt.stance.regions || [] };
+    // What a position did is kept, so changing your mind later can undo it. A position taken as a gamble
+    // (send the navy, cap the rents) did whatever the gamble did, and that went in with the news.
+    if (opt.stance) {
+      state.stances[s][opt.stance.issue] = opt.stance.regions || !opt.gamble
+        ? { option: opt.stance.option, week, applied: opt.stance.regions || [] }
+        : { option: opt.stance.option, week, applied: (result === 'won' ? opt.gamble.win : opt.gamble.lose).regions || [], ledger: 'evt' };
+    }
     if (opt.flip) {
       const st = state.stances[s][opt.flip.issue];
-      for (const [k, pts] of st.applied) state.regions[k].issue[s] -= pts;
+      for (const [k, pts] of st.applied) {
+        if (st.ledger === 'evt') state.regions[k].evt -= sgn(s) * pts;
+        else state.regions[k].issue[s] -= pts;
+      }
       applyFx(state, s, { regions: opt.flip.regions }, 'issue');
       state.stances[s][opt.flip.issue] = { option: opt.flip.option, week, applied: opt.flip.regions, flipped: true, resurfaced: true };
     }
