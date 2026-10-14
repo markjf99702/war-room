@@ -397,6 +397,16 @@ await page.emulateMedia({ colorScheme: 'light' });
   await page.click('.layer-tabs button:nth-child(4)');
   const badges = await page.$$eval('.board .badge text', ts => ts.map(t => t.textContent));
   assert.ok(badges.includes('0') && !badges.some(b => /^[+−]0$/.test(b)), `the model's misses: ${badges.join(' ')}`);
+  // Where the browser won't share or copy, "Challenge someone" shows the link, selected, and leaves it there.
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, 'share', { value: undefined, configurable: true });
+    navigator.clipboard.writeText = () => Promise.reject(new DOMException('Refused', 'NotAllowedError'));
+  });
+  await page.click('text=Challenge someone');
+  await page.waitForSelector('.share-link:not([hidden])', { timeout: 5000 }).catch(() => assert.fail('the link isn’t shown when copying is refused'));
+  const field = await page.$eval('.share-link', f => ({ value: f.value, all: f.selectionStart === 0 && f.selectionEnd === f.value.length }));
+  assert.match(field.value, /^https:\/\/war-room\.junkdrawer\.works\/\?c=e2e-result-2&p=0&d=normal&s=\d+$/);
+  assert.ok(field.all, 'the link is selected');
   // On a wide screen the board is wider than the map, and it's sea all the way across.
   await page.setViewportSize({ width: 1280, height: 800 });
   assert.ok(await page.evaluate(() => {

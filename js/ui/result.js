@@ -122,6 +122,8 @@ export function renderResult(root, ctx) {
   ].filter(c => c[1]);
 
   const shareUrl = `${SITE}?c=${encodeURIComponent(st.seed)}&p=${me}&d=${st.difficulty}&s=${res.electors[me]}`;
+  // Where the browser won't share or copy (a framed copy, say), the link shows here, selected, to copy by hand.
+  const shareField = h('input', { class: 'share-link', type: 'text', readonly: true, value: shareUrl, 'aria-label': 'Link to this campaign', hidden: true, onfocus: e => e.target.select() });
   const shareBtn = h('button', {
     type: 'button', class: 'btn ghost', onclick: async () => {
       const text = `I ${won ? 'won' : 'lost'} Aldermere with ${res.electors[me]} electors in War Room. Same campaign, your turn:`;
@@ -131,7 +133,12 @@ export function renderResult(root, ctx) {
         ctx.toast('Link copied. Send it to someone.');
       } catch (e) {
         if (e && e.name === 'AbortError') return;
-        ctx.toast(`Copy this link: ${shareUrl}`, 9000);
+        shareField.hidden = false;
+        shareField.focus();
+        shareField.select();
+        let copied = false;
+        try { copied = document.execCommand('copy'); } catch { /* not allowed here either */ }
+        ctx.toast(copied ? 'Link copied. Send it to someone.' : 'The link is selected. Copy it from there.');
       }
     },
   }, 'Challenge someone');
@@ -154,6 +161,7 @@ export function renderResult(root, ctx) {
       h('button', { type: 'button', class: 'btn', onclick: () => ctx.start({ side: them, difficulty: st.difficulty }) }, `Run as ${PARTY[them]}`),
       shareBtn,
       h('button', { type: 'button', class: 'btn ghost', onclick: () => ctx.go('title') }, 'Title screen')),
+    shareField,
     h('p', { class: 'share-note' }, `${DIFFICULTY[st.difficulty].label}. “Challenge someone” sends a link to this same campaign: same country, same rival, same news.`),
   )));
   layers.result();

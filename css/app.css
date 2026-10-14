@@ -555,6 +555,7 @@ a { color: var(--tide); }
 .calls-card li { margin: 3px 0; }
 .result-actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 16px 0; }
 .share-note { font-size: 14px; color: var(--muted); }
+.share-link { display: block; width: 100%; max-width: 560px; margin: -4px 0 12px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--ink); font: inherit; font-size: 14.5px; }
 
 .toast { position: fixed; left: 50%; bottom: calc(130px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 60; background: var(--ink); color: var(--paper); padding: 10px 16px; border-radius: 10px; font-weight: 700; font-size: 14.5px; box-shadow: var(--shadow); max-width: calc(100vw - 32px); }
 
