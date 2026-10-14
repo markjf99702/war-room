@@ -221,6 +221,11 @@ await page.evaluate(() => window.warroom.night.skip());
 const counts = await page.$$eval('.ev-names .count', els => els.map(e => +e.textContent));
 assert.equal(counts[0] + counts[1], 121, 'every elector is called by the end of the night');
 assert.ok((await legible('.call-banner'))[0] >= 4.5, 'the winner’s banner can be read');
+// Once every vote is in it says so: no LIVE badge, and nothing left to play or skip.
+assert.equal(await page.locator('.nt-live').isVisible(), false, 'still LIVE when the night is over');
+const ended = await page.$$eval('.speed button', bs => bs.map(b => ({ text: b.textContent, off: b.disabled, opacity: +getComputedStyle(b).opacity })));
+for (const b of [ended[0], ended.at(-1)]) assert.ok(b.off && b.opacity < 1, `${b.text} looks finished`);
+assert.notEqual(ended[0].text, '❚❚');
 await page.click('text=See how it was won');
 await page.waitForSelector('.verdict', { timeout: 5000 }).catch(() => assert.fail(`no result screen: ${problems.join('; ')}`));
 await fits('the result');

@@ -55,6 +55,7 @@ export function renderNight(root, ctx) {
     onclick: () => { speed = v; speedBtns.forEach((b, j) => b.setAttribute('aria-pressed', String(i === j))); },
   }, label));
   const skipBtn = h('button', { type: 'button', onclick: () => { t = plan.end; draw(true); } }, 'Skip');
+  const liveBadge = h('span', { class: 'nt-live' }, 'LIVE');
   const evCount = [h('div', { class: 'count num' }, '0'), h('div', { class: 'count num' }, '0')];
   const evFills = { t: h('div', { class: 'fill', style: { left: 0, background: 'var(--tide)' } }), tl: h('div', { class: 'fill lean', style: { background: 'var(--tide)' } }),
     h: h('div', { class: 'fill', style: { right: 0, background: 'var(--high)' } }), hl: h('div', { class: 'fill lean', style: { background: 'var(--high)' } }) };
@@ -73,7 +74,7 @@ export function renderNight(root, ctx) {
 
   root.append(h('main', { class: 'night' }, h('div', { class: 'night-inner' },
     h('div', { class: 'nt-top' },
-      h('span', { class: 'nt-title' }, 'Election night'), h('span', { class: 'nt-live' }, 'LIVE'),
+      h('span', { class: 'nt-title' }, 'Election night'), liveBadge,
       clockEl),
     h('div', { class: 'nt-top', style: 'margin-top:6px' },
       h('div', { class: 'speed' }, playBtn, ...speedBtns, skipBtn)),
@@ -161,10 +162,15 @@ export function renderNight(root, ctx) {
       void x;
     }
 
+    // Every vote is in: nothing left to play or skip, and it's no longer live.
     if (t >= plan.end && !finished) {
       finished = true;
       playing = false;
       playBtn.disabled = true;
+      playBtn.textContent = '▶';
+      playBtn.setAttribute('aria-label', 'Finished');
+      skipBtn.disabled = true;
+      liveBadge.hidden = true;
       doneBtn.hidden = false;
     }
   }

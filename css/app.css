@@ -499,6 +499,7 @@ a { color: var(--tide); }
 .speed { display: flex; gap: 4px; }
 .speed button { background: #1b2433; border: 1px solid var(--line); color: var(--ink); border-radius: 8px; min-width: 44px; min-height: 36px; font-weight: 800; font-size: 13.5px; }
 .speed button[aria-pressed="true"] { background: var(--ink); color: #0c111a; }
+.speed button:disabled { opacity: .4; cursor: default; }
 .ev-bar { margin: 12px 0 6px; }
 .ev-names { display: flex; justify-content: space-between; align-items: flex-end; gap: 8px; }
 .ev-names .side { display: flex; flex-direction: column; }
