@@ -58,6 +58,15 @@ test('firing someone costs $3M of the week’s fundraising, even with nothing le
   }
 });
 
+test('changing the subject costs more than firing someone, and hurts less', () => {
+  const st = fresh('subject-1');
+  const [d] = crisisDecisions(st, country, [{ kind: 'scandal', side: 0, thing: 'a donor’s yacht trip', role: 'campaign chair' }], st.week);
+  const fire = d.options.find(o => o.key === 'fire'), subject = d.options.find(o => o.key === 'subject');
+  assert.ok(subject.cost > -fire.sure.money, 'it costs more');
+  assert.ok(subject.sure.nat > fire.sure.nat, 'it’s worse than firing on both counts');
+  assert.match(subject.says, new RegExp(`About ${String(subject.sure.nat).replace('-', '−')}, for \\$${subject.cost}M\\.`));
+});
+
 test('unanswered calls fall back to their default, and gambles replay the same way', () => {
   const run = pick => {
     const st = fresh('gamble-1');

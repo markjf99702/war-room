@@ -171,7 +171,7 @@ export function crisisDecisions(state, country, triggers, week) {
         'The story broke on Friday. Reporters want an answer by Monday night, and whatever you do will be the story all week.', [
           { key: 'fire', label: `Fire ${staffer.split(' ')[0]} today`, says: `A sure hit now, about −0.4 everywhere, and $3M less raised while you find a new ${role}. The story is gone by Wednesday.`, sure: { nat: -0.4, money: -3 }, done: 'The story was gone by Wednesday, and so was a week’s fundraising.' },
           { key: 'stand', label: `Stand by ${staffer.split(' ')[0]}`, says: 'Even odds, roughly: it falls apart (+0.2) or it gets much worse all week (−2.0).', gamble: { p: 0.55, win: { nat: 0.2 }, lose: { nat: -2.0 }, winSays: 'The accusations fell apart.', loseSays: 'Two more payments surfaced by Thursday.' } },
-          { key: 'subject', label: 'Change the subject', cost: 4, says: 'A big housing announcement to take the edge off. About −0.5, for $4M.', sure: { nat: -0.5 }, done: 'The housing plan took the edge off.' },
+          { key: 'subject', label: 'Change the subject', cost: 4, says: 'A big housing announcement to take the edge off. About −0.35, for $4M.', sure: { nat: -0.35 }, done: 'The housing plan took the edge off.' },
         ], { staffer, defaultKey: 'stand' }));
       out.push(make(state, o, 'rivalScandal', week, `${name(s)}’s ${role} is accused of ${t.thing}`,
         `${name(s)}’s people are scrambling. What’s your line?`, [
