@@ -399,7 +399,13 @@ export function renderHQ(root, ctx) {
       h('div', { class: 'panel' },
         h('div', { class: 'card-title', style: 'margin-top:0' }, 'National polls'),
         natLine(st.natPolls),
-        h('p', { class: 'fc-note' }, `Average of the last three: ${marginLong(natAvg(st))}. That’s the popular vote, which isn’t what decides it.`)));
+        h('p', { class: 'fc-note' }, `${natNote()}: ${marginLong(natAvg(st))}. That’s the popular vote, which isn’t what decides it.`)));
+  }
+
+  // natAvg averages the last three national polls, or as many as there are so far.
+  function natNote() {
+    const n = Math.min(3, st.natPolls.length);
+    return n === 1 ? 'The only national poll so far' : `Average of the last ${n === 2 ? 'two' : 'three'}`;
   }
 
   function newsView() {

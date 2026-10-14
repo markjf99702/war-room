@@ -21,7 +21,7 @@ export function showHelp(ctx) {
       h('li', { class: 'glyph-row' }, icon(glyph.ads(0, 2)), h('span', {}, h('b', {}, 'Ads. '), 'Light, steady or heavy, bought fresh each week. The first level does the most. Ads in big cities cost more.')),
       h('li', { class: 'glyph-row' }, icon(glyph.office(0)), h('span', {}, h('b', {}, 'Field offices. '), `Once open, an office gets out your vote: +${OFFICE_GAIN} a week, every week until election day. Open them early.`)),
       h('li', { class: 'glyph-row' }, icon(glyph.poll()), h('span', {}, h('b', {}, 'Polls. '), `$${POLL_COST}M each. Results arrive in Monday’s memo, along with what your rival is running there.`)),
-      h('li', {}, `You get $${INCOME}M a week on top of fundraising, and unspent money carries over.`)),
+      h('li', { class: 'glyph-row' }, h('span', { style: 'width:26px;flex:none', 'aria-hidden': 'true' }), h('span', {}, `You get $${INCOME}M a week on top of fundraising, and unspent money carries over.`))),
     h('h3', {}, 'What you can’t see'),
     h('p', {}, 'Your rival plans at the same time you do, and you only learn where their candidates went. Their ads and field offices stay hidden until you poll a region. Your map shows your campaign’s best guess, and a region nobody has polled in weeks can be further off than it looks.'),
     h('h3', {}, 'Your calls'),

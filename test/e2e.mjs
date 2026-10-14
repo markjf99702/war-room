@@ -7,8 +7,8 @@ import { join, dirname, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { makeCountry } from '../js/country.js';
-import { newCampaign, chooseMate, resolveWeek, emptyPlan } from '../js/campaign.js';
-import { decideAll } from '../js/ai.js';
+import { newCampaign, chooseMate, resolveWeek, emptyPlan, finalResult } from '../js/campaign.js';
+import { decideAll, planFor } from '../js/ai.js';
 import { crisisDecisions } from '../js/decisions.js';
 import { debateSetup, autoAnswers, STYLES } from '../js/debate.js';
 
@@ -179,6 +179,7 @@ assert.equal(await page.locator('.board .tokens .pawn').count(), 1, 'the candida
 // The forecast tab draws its charts.
 await page.click('.tabs button[data-tab="forecast"]');
 assert.equal(await page.locator('.side-col svg.chart').count(), 4);
+assert.match(await page.textContent('.side-col'), /The only national poll so far: /, 'week 1 has one national poll, not three');
 await page.click('.tabs button[data-tab="map"]');
 
 // End the week: Monday's paper, with the poll in the memo.
@@ -288,6 +289,7 @@ assert.ok(await focusIn('.menu-btn'));
 await page.keyboard.press('Enter');
 await page.keyboard.press('Enter'); // How to play
 assert.ok(await focusIn('.sheet'), 'How to play has the focus');
+assert.ok(await page.$$eval('.sheet ul li', lis => lis.every(li => getComputedStyle(li).display === 'flex')), 'one item in “Each week” has a bullet');
 await page.keyboard.press('Escape');
 assert.ok(await focusIn('.menu-btn'), 'closing How to play hands the focus back');
 await page.focus('.pb-piece');
@@ -364,11 +366,12 @@ await page.emulateMedia({ colorScheme: 'light' });
 
 // The focus group's verdict on an exchange the rival won is a plus for the rival.
 {
-  const st = campaignAt('e2e-verdict', 3);
+  const st = campaignAt('e2e-verdict-2', 3);
   const theirs = autoAnswers(st, country, debateSetup(st, country, 3), 1);
   const beaten = { attack: 'facts', facts: 'plan', plan: 'story', story: 'attack' };
   await load(st);
   await page.click('.planbar .btn.stamp');
+  assert.equal(await page.textContent('.db-venue'), 'The Port Ansel Playhouse', 'the venue on its own starts with a capital');
   const verdicts = [];
   for (let q = 0; q < 4; q++) {
     await page.click(`.db-answer:has-text("${STYLES[beaten[theirs[q]]].label}")`);
@@ -377,6 +380,23 @@ await page.emulateMedia({ colorScheme: 'light' });
   }
   assert.ok(verdicts.some(v => v.includes(`for ${st.cands[1].last}`)), verdicts.join(' / '));
   for (const v of verdicts) assert.doesNotMatch(v, /−\d/, 'the verdict names who won it');
+}
+
+// The morning after, in words: "You polled it once", and a miss that rounds to nothing is just 0.
+{
+  const st = newCampaign(country, { seed: 'e2e-result-2' });
+  chooseMate(st, country, 0, 0);
+  while (st.phase === 'plan') {
+    resolveWeek(st, country, [planFor(st, country, 0, 'normal'), planFor(st, country, 1, 'normal')]);
+    for (const s of [0, 1]) decideAll(st, country, s);
+  }
+  st.result = finalResult(st, country);
+  st.phase = 'done';
+  await load(st);
+  assert.match(await page.textContent('.res-grid'), /You polled it once\./);
+  await page.click('.layer-tabs button:nth-child(4)');
+  const badges = await page.$$eval('.board .badge text', ts => ts.map(t => t.textContent));
+  assert.ok(badges.includes('0') && !badges.some(b => /^[+−]0$/.test(b)), `the model's misses: ${badges.join(' ')}`);
 }
 
 // A challenge link starts the same campaign.

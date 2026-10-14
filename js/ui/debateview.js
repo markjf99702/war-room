@@ -36,7 +36,7 @@ export function renderDebate(root, ctx, { plans, onDone }) {
   root.append(h('main', { class: 'night debate' }, h('div', { class: 'night-inner' },
     h('div', { class: 'nt-top' },
       h('span', { class: 'nt-title' }, `The ${setup.nth} debate`), h('span', { class: 'nt-live' }, 'LIVE'),
-      h('span', { class: 'db-venue' }, setup.venue)),
+      h('span', { class: 'db-venue' }, cap(setup.venue))),
     h('div', { class: 'db-podiums' },
       h('div', { class: `db-pod side${me}` }, h('span', {}, `${you.name} (you)`), h('small', {}, `${cap(myTemper.label)}. ${cap(STYLES[myTemper.natural].short.replace(/^went|^walked|^pivoted|^told/, m => ({ went: 'Going', walked: 'Walking', pivoted: 'Pivoting', told: 'Telling' })[m]))} comes naturally.`)),
       h('div', { class: `db-pod side${them}` }, h('span', {}, rival.name), h('small', {}, prepped[them] ? 'Spent the week preparing.' : 'Was out on the trail this week.'))),

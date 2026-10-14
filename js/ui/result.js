@@ -56,7 +56,8 @@ export function renderResult(root, ctx) {
         const key = a < 1.5 ? 'tu' : `${(d > 0) === (me === 0) ? 't' : 'h'}${a >= 5 ? 3 : a >= 3 ? 2 : 1}`;
         map.fill(k, `var(--r-${key})`);
         map.tokens(k, []);
-        map.badgeText(k, `${d > 0 ? '+' : '−'}${a.toFixed(0)}`);
+        const pts = a.toFixed(0);
+        map.badgeText(k, pts === '0' ? '0' : `${d > 0 ? '+' : '−'}${pts}`);
       });
       note.textContent = `How far off your model was on the last day, in points. ${me === 0 ? 'Teal' : 'Gold'}: it went better for you than you thought. ${me === 0 ? 'Gold' : 'Teal'}: worse.`;
     },
@@ -114,7 +115,7 @@ export function renderResult(root, ctx) {
   const cards = [
     ['The tipping point', `${R(tip).name} (${plural(R(tip).electors, 'elector')}) put ${st.cands[res.winner].name} over the line. ${last(tipX.winner)} carried it by ${Math.abs(tipX.m).toFixed(1)} points, ${num(Math.abs(tipX.votes[0] - tipX.votes[1]))} votes.`],
     ['Your forecast', finalFc === undefined ? '' : `On the last Monday, your campaign’s model gave you ${chance(finalFc)}. ${won ? (finalFc < 0.5 ? 'You beat it.' : 'It was right.') : (finalFc > 0.5 ? 'It was too hopeful.' : 'It saw this coming.')}`],
-    ['What you couldn’t see', unseen ? `${last(them)} put ${money(unseen.spend)} into ${R(unseen.k).name}${book[them].office[unseen.k] ? `, with a field office from week ${book[them].office[unseen.k]}` : ''}. You polled it ${unseen.polls ? plural(unseen.polls, 'time') : 'never'}. It went ${margin(res.regions[unseen.k].m)}.` : `${last(them)} barely spent a thing.`],
+    ['What you couldn’t see', unseen ? `${last(them)} put ${money(unseen.spend)} into ${R(unseen.k).name}${book[them].office[unseen.k] ? `, with a field office from week ${book[them].office[unseen.k]}` : ''}. ${unseen.polls === 0 ? 'You never polled it' : unseen.polls === 1 ? 'You polled it once' : `You polled it ${unseen.polls} times`}. It went ${margin(res.regions[unseen.k].m)}.` : `${last(them)} barely spent a thing.`],
     ['Where your model was furthest off', `${R(bigMiss).name}: it had ${margin(estimate(st, me, bigMiss).m)}; it went ${margin(res.regions[bigMiss].m)}.`],
     ['Where your money went', mineTop.length ? `${mineTop.map(([k, c]) => `${R(k).name} ${money(c)} (${res.regions[k].winner === me ? 'won' : 'lost'})`).join(', ')}. ${money(book[me].total)} in all.` : 'You didn’t spend anything. Brave.'],
     ['Closest of the night', `${R(closest).name}: ${last(res.regions[closest].winner)} by ${num(Math.abs(res.regions[closest].votes[0] - res.regions[closest].votes[1]))} votes out of ${num(res.regions[closest].total)}.`],
