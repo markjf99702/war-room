@@ -88,6 +88,11 @@ function contrast(fg, bg) {
   const [x, y] = [lum(fg), lum(bg)].sort((p, q) => q - p);
   return (x + 0.05) / (y + 0.05);
 }
+// Text colour against the element's own background, for each element matching sel (SVG text: its fill against `bg`).
+const legible = (sel, bg) => page.$$eval(sel, (els, bg) => els.map(el => {
+  const css = getComputedStyle(el);
+  return el instanceof SVGElement ? [css.fill, getComputedStyle(el.parentNode.querySelector(bg)).stroke] : [css.color, css.backgroundColor];
+}), bg).then(pairs => pairs.map(([fg, back]) => contrast(fg, back)));
 const mine = () => page.evaluate(() => { const s = window.warroom.ctx.state; return { week: s.week, chosen: s.pending.filter(d => d.side === s.side && d.chosen).length }; });
 // A quick double tap: the first tap changes the screen, and the second lands on whatever is under the finger
 // now (`then`). Dispatched in the page, so the second tap comes at once. With 'mouse' it's a double click.
@@ -150,6 +155,8 @@ for (const [w, ht] of [[360, 780], [320, 640]]) {
   })), `the menu button and End week are on screen at ${w}px`);
 }
 await page.setViewportSize({ width: 390, height: 844 });
+// The two "Likely" labels in the map's legend can be read.
+for (const c of await legible('.legend .l-t2, .legend .l-h2')) assert.ok(c >= 4.5, `a "Likely" label at ${c.toFixed(2)}:1`);
 
 // Plan a week by hand: the candidate to New Aldham, steady ads, a field office and a poll.
 await pick('New Aldham');
@@ -208,6 +215,7 @@ await page.waitForTimeout(600);
 await page.evaluate(() => window.warroom.night.skip());
 const counts = await page.$$eval('.ev-names .count', els => els.map(e => +e.textContent));
 assert.equal(counts[0] + counts[1], 121, 'every elector is called by the end of the night');
+assert.ok((await legible('.call-banner'))[0] >= 4.5, 'the winner’s banner can be read');
 await page.click('text=See how it was won');
 await page.waitForSelector('.verdict');
 await fits('the result');
@@ -258,8 +266,21 @@ await page.click('.call-opt:has-text("Promise a rescue fund")');
 await page.click('.paper-actions .btn');
 assert.equal(await page.textContent('#moneyChip'), `$${await page.evaluate(() => window.warroom.ctx.state.money[0])}M`, 'the money shown is what’s in the bank');
 
-// In dark mode the confirm box's buttons can be read, and its own button is the red one.
+// In dark mode the pressed buttons, the pieces, the ratings and the rival's ghost pieces can be read, and
+// the confirm box's buttons too, its own button being the red one.
 await page.emulateMedia({ colorScheme: 'dark' });
+{
+  const st = campaignAt('e2e-dark', 2);
+  st.rallies.push({ week: 1, side: 1, who: 'cand', region: 2 }); // the rival rallied in New Aldham last week
+  await load(st);
+  await pick('New Aldham');
+  await page.click('.acts .togg >> nth=0');
+  for (const sel of ['.seg button[aria-pressed="true"]', '.togg[aria-pressed="true"]', '.togg .pc', '.pb-piece .pc', '.legend .l-t2, .legend .l-h2, .legend .l-h3']) {
+    for (const c of await legible(sel)) assert.ok(c >= 4.5, `${sel} at ${c.toFixed(2)}:1 in dark mode`);
+  }
+  const ghost = await legible('.board .ghost text', 'circle');
+  assert.ok(ghost.length && ghost.every(c => c === 1), 'a ghost piece’s letter is in the rival’s colour');
+}
 await page.click('.menu-btn');
 await page.click('.menu >> text=Give up this campaign');
 const askColours = await page.evaluate(() => {
