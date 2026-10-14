@@ -211,6 +211,10 @@ assert.ok(calls >= 4, `made ${calls} calls`);
 // Election night.
 await page.waitForSelector('.night');
 await fits('election night');
+// The night picks up again after a reload, without an error.
+await page.reload();
+await page.waitForSelector('.night');
+assert.deepEqual(problems, [], 'problems after reloading on election night');
 await page.waitForTimeout(600);
 await page.evaluate(() => window.warroom.night.skip());
 const counts = await page.$$eval('.ev-names .count', els => els.map(e => +e.textContent));

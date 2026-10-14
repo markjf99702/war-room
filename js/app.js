@@ -177,6 +177,9 @@ function toast(msg, ms = 2600) {
 
 guardTaps();
 
+// For tools and tests (before the first screen: election night adds its own controls here).
+window.warroom = { ctx, country };
+
 // Old saves from a different version of the rules aren't worth trying to rescue.
 if (ctx.state && ctx.state.v !== 2) { ctx.state = null; store.del(KEY); }
 go(ctx.invite ? 'title' : ctx.state ? 'resume' : 'title');
@@ -185,6 +188,3 @@ go(ctx.invite ? 'title' : ctx.state ? 'resume' : 'title');
 if ('serviceWorker' in navigator && !('single' in document.documentElement.dataset) && location.protocol !== 'file:') {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
-
-// For tools and tests.
-window.warroom = { ctx, country };
