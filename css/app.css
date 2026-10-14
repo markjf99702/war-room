@@ -561,6 +561,11 @@ a { color: var(--tide); }
   .hq[data-tab="forecast"] .board-wrap, .hq[data-tab="news"] .board-wrap { display: none; }
 }
 
+/* ------------------------------------------------------------ less motion, when the system asks for it */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+}
+
 /* ------------------------------------------------------------ wider screens */
 @media (min-width: 700px) {
   .cols { grid-template-columns: 1.3fr 1fr; }

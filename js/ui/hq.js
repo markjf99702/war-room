@@ -66,7 +66,8 @@ export function renderHQ(root, ctx) {
     map.select(k);
     if (ui.tab !== 'map') setTab('map'); else renderSide();
     if (k !== null && matchMedia('(max-width: 939px)').matches) {
-      requestAnimationFrame(() => side.querySelector('.panel')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
+      const behavior = matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+      requestAnimationFrame(() => side.querySelector('.panel')?.scrollIntoView({ behavior, block: 'nearest' }));
     }
   }
 

@@ -302,6 +302,19 @@ assert.equal(await page.locator('.side-col [aria-live]').count(), 0);
 await page.click('.seg button >> nth=1');
 assert.match(await page.textContent('.hq > [aria-live]'), /^\$\d+M left\. .+ to win\.$/);
 
+// With reduced motion asked for, nothing animates: not the map, and not the scroll to a region's panel.
+await page.emulateMedia({ reducedMotion: 'reduce' });
+await page.evaluate(() => {
+  window.scrolls = [];
+  const was = Element.prototype.scrollIntoView;
+  Element.prototype.scrollIntoView = function (o) { window.scrolls.push(o?.behavior); return was.call(this, o); };
+});
+await pick('Sandling');
+await page.waitForFunction(() => window.scrolls.length);
+assert.deepEqual(await page.evaluate(() => window.scrolls), ['auto'], 'the scroll to the panel is smooth');
+assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.board .reg')).transitionDuration), '0s', 'the map still animates');
+await page.emulateMedia({ reducedMotion: 'no-preference' });
+
 // A phone on its side: the candidate's menu in a debate week (its longest) stays on screen.
 {
   const st = campaignAt('e2e-landscape', 3);
