@@ -2,7 +2,7 @@
 
 import { h, margin, marginLong, money, num, mondayOf, settle, PARTY } from './dom.js';
 import { WEEKS, AD_NAMES } from '../campaign.js';
-import { choose } from '../decisions.js';
+import { choose, clashes, promisedTo } from '../decisions.js';
 import { decide } from '../ai.js';
 
 export function showPaper(ctx, entry, onDone) {
@@ -88,7 +88,9 @@ export function showPaper(ctx, entry, onDone) {
     next.disabled = open.length > 0;
     next.textContent = open.length ? (open.length > 1 ? `Make your ${open.length} calls first` : 'Make your call first') : (last ? 'On to election night →' : `Plan week ${w + 1} →`);
   };
-  const callCards = asks.map(d => callCard(ctx, d, () => gate()));
+  // A call can change what the others offer (one promise to be somewhere a week), so they're all redrawn.
+  const cards = asks.map(d => callCard(ctx, d, () => { gate(); for (const c of cards) c.draw(); }));
+  const callCards = cards.map(c => c.card);
   gate();
 
   const paper = h('div', { class: 'paper', role: 'dialog', 'aria-modal': 'true', 'aria-label': `The Aldermere Ledger, after week ${w}` },
@@ -143,8 +145,10 @@ function groupBy(list, key) {
 function callCard(ctx, d, changed) {
   const { country, state: st } = ctx;
   const card = h('section', { class: 'call', 'aria-label': `Your call: ${d.title}` });
-  const hint = d.chosen ? null : d.options.find(o => o.key === decide(st, country, st.side, d, 'advisor'));
   const draw = () => {
+    // What the strategist would do, given the calls made so far (they can change what's possible).
+    const hint = d.chosen ? null : d.options.find(o => o.key === decide(st, country, st.side, d, 'advisor'));
+    const promised = promisedTo(st, st.side, d.week, d);
     card.replaceChildren(
       h('span', { class: 'stamp' }, d.kind === 'issue' ? 'Take a position' : 'Your call'),
       h('h4', {}, d.title),
@@ -152,22 +156,23 @@ function callCard(ctx, d, changed) {
       h('div', { class: 'call-opts' }, ...d.options.map(o => {
         const picked = d.chosen === o.key;
         const tooDear = (o.cost || 0) > st.money[st.side];
+        const clash = clashes(st, d, o);
         return h('button', {
-          type: 'button', class: 'call-opt', 'aria-pressed': String(picked), disabled: d.chosen || tooDear ? true : null,
+          type: 'button', class: 'call-opt', 'aria-pressed': String(picked), disabled: d.chosen || tooDear || clash ? true : null,
           onclick: () => {
             if (!choose(st, d.id, o.key)) return;
             ctx.save();
-            draw();
             changed();
           },
-        }, h('b', {}, o.label, o.cost ? h('span', { class: 'cost' }, ` · ${money(o.cost)}`) : null), h('small', {}, tooDear && !d.chosen ? `You can’t afford it (${money(st.money[st.side])} in the bank).` : o.says));
+        }, h('b', {}, o.label, o.cost ? h('span', { class: 'cost' }, ` · ${money(o.cost)}`) : null),
+        h('small', {}, d.chosen ? o.says : tooDear ? `You can’t afford it (${money(st.money[st.side])} in the bank).` : clash ? `You’ve already promised to go to ${country.regions[promised].name} this week.` : o.says));
       })),
       d.chosen
         ? h('p', { class: 'call-note' }, d.kind === 'issue' ? 'It’s on the record. You’ll see how it went down in next Monday’s paper.' : 'Decided. You’ll see how it played in next Monday’s paper.')
         : h('p', { class: 'call-note' }, `Your strategist would: ${lowerFirst(hint.label)}.`));
   };
   draw();
-  return card;
+  return { card, draw };
 }
 
 export { PARTY };

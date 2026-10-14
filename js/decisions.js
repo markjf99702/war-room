@@ -299,16 +299,28 @@ export function choose(state, id, key) {
   const opt = d.options.find(o => o.key === key);
   if (!opt) return false;
   if ((opt.cost || 0) > state.money[d.side]) return false;
+  if (clashes(state, d, opt)) return false;
   state.money[d.side] -= opt.cost || 0;
   d.chosen = key;
   return true;
 }
 
 export const openFor = (state, s) => state.pending.filter(d => d.side === s && !d.chosen);
-export const promiseFor = (state, s) => {
-  const d = state.pending.find(x => x.side === s && x.week === state.week && x.chosen && x.options.find(o => o.key === x.chosen).promise);
+
+// Where side s has promised its candidate will go in a given week, by any call but `skip`.
+export function promisedTo(state, s, week, skip = null) {
+  const d = state.pending.find(x => x !== skip && x.side === s && x.week === week && x.chosen && x.options.find(o => o.key === x.chosen)?.promise);
   return d ? d.options.find(o => o.key === d.chosen).promise.region : null;
-};
+}
+export const promiseFor = (state, s) => promisedTo(state, s, state.week);
+
+// The candidate can only be in one place a week, so a promise to go somewhere else that week can't be made
+// (a plant closing and a flood can both ask for one).
+export function clashes(state, d, opt) {
+  if (!opt.promise) return false;
+  const k = promisedTo(state, d.side, d.week, d);
+  return k !== null && k !== opt.promise.region;
+}
 
 // Returns the money it costs, which comes out of the week's fundraising (resolveWeek), so it's paid even
 // when the bank is empty.

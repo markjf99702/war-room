@@ -325,6 +325,28 @@ const rowName = await row.locator('button').textContent();
 await row.locator('td').last().click();
 assert.equal(await page.textContent('.rp-name'), rowName, 'a tap on the row opened its region');
 
+// A plant closing and a flood in the same week both ask the party in power to go there. Once the candidate
+// is promised to one, the other visit can't be picked, and the strategist stops suggesting it.
+{
+  const st = campaignAt('e2e-promise', 2);
+  st.incumbent = 0;
+  st.pending = crisisDecisions(st, country, [{ kind: 'plant', region: 5, jobs: 1200, company: 'Harrow Steel' }, { kind: 'flood', region: 9 }], st.week);
+  st.history.at(-1).asks = st.pending.map(d => d.id);
+  decideAll(st, country, 1);
+  await load(st);
+  const flood = page.locator('.call', { hasText: `Floods in ${country.regions[9].name}` });
+  const visit = flood.locator('.call-opt', { hasText: `Go to ${country.regions[9].name} this week` });
+  assert.equal(await visit.isDisabled(), false);
+  await page.click('.call-opt:has-text("Go to the plant gates")');
+  assert.equal(await visit.isDisabled(), true, 'a second promise, somewhere else, can still be made');
+  assert.match(await visit.textContent(), new RegExp(`You’ve already promised to go to ${country.regions[5].name} this week`));
+  assert.doesNotMatch(await flood.locator('.call-note').textContent(), /would: go to/, 'the strategist suggests the second promise');
+  await fits('the paper with two calls');
+  await flood.locator('.call-opt:not([disabled])').first().click();
+  await page.click('.paper-actions .btn');
+  assert.match(await page.textContent('.side-col'), new RegExp(`You promised to go to ${country.regions[5].name} this week`));
+}
+
 // A phone on its side: the candidate's menu in a debate week (its longest) stays on screen.
 {
   const st = campaignAt('e2e-landscape', 3);

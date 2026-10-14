@@ -10,7 +10,7 @@ import {
   WEEKS, DEBATE_WEEKS, FUNDRAISE, OFFICE_GAIN, POLL_COST, adPush, adUnit, officeCost, rallyPush, emptyPlan, sign,
 } from './campaign.js';
 import { inputs, simulate } from './forecast.js';
-import { choose, openFor, promiseFor } from './decisions.js';
+import { choose, clashes, openFor, promiseFor } from './decisions.js';
 
 const NOISE = { easy: 0.9, normal: 0.25, hard: 0, advisor: 0 };
 
@@ -110,7 +110,7 @@ export function decide(state, country, s, d, level = 'normal') {
     return x;
   };
   const appetite = (0.5 - sim.p) * 1.2;
-  const scored = d.options.filter(o => (o.cost || 0) <= state.money[s]).map(o => {
+  const scored = d.options.filter(o => (o.cost || 0) <= state.money[s] && !clashes(state, d, o)).map(o => {
     let x = worth(o.sure) - (o.cost || 0) * perDollar;
     if (o.gamble) {
       const a = worth(o.gamble.win), b = worth(o.gamble.lose), p = o.gamble.p;

@@ -90,6 +90,39 @@ test('a promise to visit pays if kept and hurts if broken', () => {
   assert.ok(trial(true) > trial(false) + 1.5);
 });
 
+test('a campaign can only promise to be in one place a week', () => {
+  const twoCalls = (seed, floodAt) => {
+    const st = fresh(seed);
+    st.incumbent = 0; // so both the plant closing and the flood ask side 0 to go there
+    const ds = crisisDecisions(st, country, [{ kind: 'plant', region: 5, jobs: 1200, company: 'Harrow Steel' }, { kind: 'flood', region: floodAt }], st.week);
+    st.pending.push(...ds);
+    return { st, ds, mine: ds.filter(d => d.side === 0) };
+  };
+  const { st, mine: [plant, flood] } = twoCalls('promise-2', 9);
+  assert.ok(flood.options.some(o => o.promise), 'the flood asks for a visit too');
+  assert.ok(choose(st, plant.id, 'visit'));
+  assert.equal(choose(st, flood.id, 'visit'), false, 'a second promise, somewhere else');
+  const hint = decide(st, country, 0, flood, 'advisor');
+  assert.notEqual(hint, 'visit', 'the strategist suggests a promise that can’t be kept');
+  assert.ok(choose(st, flood.id, hint));
+  // Two calls asking for the same place can both be promised: one visit keeps both.
+  const same = twoCalls('promise-3', 5);
+  assert.ok(choose(same.st, same.mine[0].id, 'visit'));
+  assert.ok(choose(same.st, same.mine[1].id, 'visit'));
+
+  // Left to the computer, both campaigns make at most one promise, and keep it.
+  for (let i = 0; i < 12; i++) {
+    const { st: s2 } = twoCalls(`promise-ai-${i}`, 9);
+    for (const s of [0, 1]) decideAll(s2, country, s);
+    for (const s of [0, 1]) {
+      const at = s2.pending.filter(d => d.side === s && d.chosen && d.options.find(o => o.key === d.chosen).promise);
+      assert.ok(at.length <= 1, `side ${s} promised to be in two places in promise-ai-${i}`);
+    }
+    const h = resolveWeek(s2, country, [planFor(s2, country, 0), planFor(s2, country, 1)]);
+    assert.deepEqual(h.calls.filter(c => c.result === 'broken'), [], `a broken promise in promise-ai-${i}`);
+  }
+});
+
 test('a position on an issue moves the regions it names, and counts as your own work', () => {
   const st = fresh('issue-1');
   const ds = issueDecisions(st, country, st.week);
