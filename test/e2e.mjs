@@ -154,6 +154,9 @@ await page.setViewportSize({ width: 390, height: 844 });
 // Plan a week by hand: the candidate to New Aldham, steady ads, a field office and a poll.
 await pick('New Aldham');
 assert.match(await page.textContent('.rp-name'), /New Aldham/);
+// Its panel scrolls into view clear of the top bar.
+for (let y = -1, i = 0; i < 30; i++) { await page.waitForTimeout(100); const now = await page.evaluate(() => scrollY); if (now === y) break; y = now; }
+assert.ok(await page.evaluate(() => document.querySelector('.rp-name').getBoundingClientRect().top >= document.querySelector('.top').getBoundingClientRect().bottom), 'the region’s name is under the top bar');
 const before = await page.textContent('.pb-money small');
 await page.click('.acts .togg >> nth=0');
 assert.match(await page.textContent('.pb-piece >> nth=0'), /Rally in New Aldham/);

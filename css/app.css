@@ -218,6 +218,8 @@ a { color: var(--tide); }
 .hq { flex: 1; display: grid; grid-template-columns: 1fr; gap: 0; }
 .board-col { padding: 10px 10px 0; min-width: 0; }
 .side-col { min-width: 0; padding: 0 12px 150px; }
+/* A tapped region scrolls its panel into view on a phone: clear of the top bar and the plan bar. */
+.side-col .panel { scroll-margin: calc(66px + env(safe-area-inset-top)) 0 calc(130px + env(safe-area-inset-bottom)); }
 .tabs { display: flex; gap: 6px; margin: 2px 0 8px; }
 .tabs button {
   flex: 1; padding: 9px 6px; border-radius: 10px; border: 1px solid var(--line); background: var(--card);
