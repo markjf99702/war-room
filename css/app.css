@@ -357,6 +357,7 @@ a { color: var(--tide); }
 .tip-table td { padding: 7px 4px; border-top: 1px solid var(--line); }
 .tip-table td.r, .tip-table th.r { text-align: right; }
 .tip-table button { background: none; border: 0; padding: 0; font-weight: 700; text-align: left; }
+.tip-table tbody tr { cursor: pointer; }
 .tipbar { display: inline-block; height: 9px; border-radius: 3px; background: var(--stamp); vertical-align: middle; margin-right: 6px; opacity: .8; }
 
 /* News list (past weeks) */

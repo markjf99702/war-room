@@ -315,6 +315,13 @@ assert.deepEqual(await page.evaluate(() => window.scrolls), ['auto'], 'the scrol
 assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.board .reg')).transitionDuration), '0s', 'the map still animates');
 await page.emulateMedia({ reducedMotion: 'no-preference' });
 
+// A tap anywhere on a row of "Where it's close" opens that region, not just on its name.
+await page.click('.rp-close');
+const row = page.locator('.tip-table tbody tr').first();
+const rowName = await row.locator('button').textContent();
+await row.locator('td').last().click();
+assert.equal(await page.textContent('.rp-name'), rowName, 'a tap on the row opened its region');
+
 // A phone on its side: the candidate's menu in a debate week (its longest) stays on screen.
 {
   const st = campaignAt('e2e-landscape', 3);

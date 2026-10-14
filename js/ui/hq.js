@@ -242,8 +242,9 @@ export function renderHQ(root, ctx) {
     const maxTip = Math.max(...rows.map(r => r.tip), 0.01);
     return h('table', { class: 'tip-table' },
       h('thead', {}, h('tr', {}, h('th', {}, 'Region'), h('th', { class: 'r' }, 'Your model'), h('th', { class: 'r' }, 'Decides it'))),
-      h('tbody', {}, ...rows.map(({ k, g, x, tip }) => h('tr', {},
-        h('td', {}, h('button', { type: 'button', onclick: () => select(k) }, g.name), h('span', { class: 'muted' }, ` ${g.electors}`)),
+      // The whole row is the target on a phone; the name is the button for the keyboard.
+      h('tbody', {}, ...rows.map(({ k, g, x, tip }) => h('tr', { onclick: () => select(k) },
+        h('td', {}, h('button', { type: 'button' }, g.name), h('span', { class: 'muted' }, ` ${g.electors}`)),
         h('td', { class: 'r num' }, margin(x.mean)),
         h('td', { class: 'r num' }, h('span', { class: 'tipbar', style: { width: `${Math.round(38 * tip / maxTip)}px` } }), `${Math.round(tip * 100)}%`)))));
   }
