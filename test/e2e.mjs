@@ -211,7 +211,8 @@ assert.ok(calls >= 4, `made ${calls} calls`);
 // Election night.
 await page.waitForSelector('.night');
 await fits('election night');
-// The night picks up again after a reload, without an error.
+// The night picks up again after a reload, without an error, even with a damaged won-lost record.
+await page.evaluate(() => localStorage.setItem('war-room:record', '{"played":2,"won":1}'));
 await page.reload();
 await page.waitForSelector('.night');
 assert.deepEqual(problems, [], 'problems after reloading on election night');
@@ -221,11 +222,12 @@ const counts = await page.$$eval('.ev-names .count', els => els.map(e => +e.text
 assert.equal(counts[0] + counts[1], 121, 'every elector is called by the end of the night');
 assert.ok((await legible('.call-banner'))[0] >= 4.5, 'the winner’s banner can be read');
 await page.click('text=See how it was won');
-await page.waitForSelector('.verdict');
+await page.waitForSelector('.verdict', { timeout: 5000 }).catch(() => assert.fail(`no result screen: ${problems.join('; ')}`));
 await fits('the result');
 for (const n of [2, 3, 4]) await page.click(`.layer-tabs button:nth-child(${n})`);
 const record = await page.evaluate(() => JSON.parse(localStorage.getItem('war-room:record')));
-assert.equal(record.played, 1);
+assert.equal(record.played, 3);
+assert.equal(record.games.length, 1);
 
 const seed = await page.evaluate(() => window.warroom.ctx.state.seed);
 
@@ -317,6 +319,13 @@ await page.emulateMedia({ colorScheme: 'light' });
 // A challenge link starts the same campaign.
 await page.goto(`${base}?c=${seed}&p=1&d=easy&s=64`);
 assert.match(await page.textContent('.title-screen'), /Someone sent you this campaign/);
+
+// Whatever else is stored as the record, the game starts from a clean one.
+for (const junk of ['{}', '[]', '5', '"x"', '{"played":"2","won":1,"games":{}}']) {
+  await page.evaluate(j => localStorage.setItem('war-room:record', j), junk);
+  await page.reload();
+  assert.deepEqual(await page.evaluate(() => window.warroom.ctx.record), { played: 0, won: 0, games: [] }, junk);
+}
 
 // Works offline once it has been opened.
 await page.goto(base);

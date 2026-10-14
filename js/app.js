@@ -29,7 +29,7 @@ const root = $('#app');
 const ctx = {
   country,
   state: store.get(KEY),
-  record: store.get(RECORD) || { played: 0, won: 0, games: [] },
+  record: cleanRecord(store.get(RECORD)),
   invite: readInvite(),
   save() { if (ctx.state) store.set(KEY, ctx.state); },
   go,
@@ -90,6 +90,14 @@ const ctx = {
   },
   help: () => showHelp(ctx),
 };
+
+// The won-lost record. If storage holds something else there (it was damaged), keep what can be kept.
+function cleanRecord(r) {
+  const ok = r && typeof r === 'object' && !Array.isArray(r);
+  const count = x => (ok && Number.isInteger(x) && x >= 0 ? x : 0);
+  const played = count(r?.played);
+  return { ...(ok ? r : {}), played, won: Math.min(count(r?.won), played), games: ok && Array.isArray(r.games) ? r.games : [] };
+}
 
 function readInvite() {
   const q = new URLSearchParams(location.search);
