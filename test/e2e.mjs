@@ -10,6 +10,7 @@ import { makeCountry } from '../js/country.js';
 import { newCampaign, chooseMate, resolveWeek, emptyPlan } from '../js/campaign.js';
 import { decideAll } from '../js/ai.js';
 import { crisisDecisions } from '../js/decisions.js';
+import { debateSetup, autoAnswers, STYLES } from '../js/debate.js';
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -267,6 +268,23 @@ assert.ok(contrast(askColours.no, askColours.sheet) >= 4.5, `Cancel is ${askColo
 assert.equal(askColours.yes, askColours.stamp, '“Give up” is red');
 await page.keyboard.press('Escape');
 await page.emulateMedia({ colorScheme: 'light' });
+
+// The focus group's verdict on an exchange the rival won is a plus for the rival.
+{
+  const st = campaignAt('e2e-verdict', 3);
+  const theirs = autoAnswers(st, country, debateSetup(st, country, 3), 1);
+  const beaten = { attack: 'facts', facts: 'plan', plan: 'story', story: 'attack' };
+  await load(st);
+  await page.click('.planbar .btn.stamp');
+  const verdicts = [];
+  for (let q = 0; q < 4; q++) {
+    await page.click(`.db-answer:has-text("${STYLES[beaten[theirs[q]]].label}")`);
+    verdicts.push(await page.textContent('.db-verdict'));
+    await page.click('.db-stage .btn');
+  }
+  assert.ok(verdicts.some(v => v.includes(`for ${st.cands[1].last}`)), verdicts.join(' / '));
+  for (const v of verdicts) assert.doesNotMatch(v, /−\d/, 'the verdict names who won it');
+}
 
 // A challenge link starts the same campaign.
 await page.goto(`${base}?c=${seed}&p=1&d=easy&s=64`);

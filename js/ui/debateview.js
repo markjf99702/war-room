@@ -71,7 +71,7 @@ export function renderDebate(root, ctx, { plans, onDone }) {
     const pts = sg(ex.score);
     running += pts;
     const dial = Math.round(pts * 3);
-    const verdict = Math.abs(dial) < 2 ? 'The focus group barely moved.' : `Focus group: ${dial > 0 ? '+' : '−'}${Math.abs(dial)} for ${dial > 0 ? you.last : rival.last}.`;
+    const verdict = Math.abs(dial) < 2 ? 'The focus group barely moved.' : `Focus group: +${Math.abs(dial)} for ${dial > 0 ? you.last : rival.last}.`;
     const why = whyText(ex.why, s => (s === me ? 'You' : rival.last)).replace('You’s', 'Your');
     stage.replaceChildren(
       h('div', { class: 'db-q' }, h('div', { class: 'db-qn' }, `Question ${i + 1} of ${setup.topics.length}`), h('p', {}, `“${setup.topics[i].q}”`)),
