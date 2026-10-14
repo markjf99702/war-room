@@ -233,7 +233,7 @@ export function crisisDecisions(state, country, triggers, week) {
           `${t.jobs.toLocaleString('en-US')} jobs, and ${A.name} and ${B.name} both want them. Whichever you back, the other will remember.`, [
             { key: 'a', label: `Back ${A.name}`, says: `+1.4 in ${A.name}, −0.6 in ${B.name}.`, sure: { regions: [[A.id, 1.4], [B.id, -0.6]] }, done: `${A.name} was grateful; ${B.name} less so.` },
             { key: 'b', label: `Back ${B.name}`, says: `+1.4 in ${B.name}, −0.6 in ${A.name}.`, sure: { regions: [[B.id, 1.4], [A.id, -0.6]] }, done: `${B.name} was grateful; ${A.name} less so.` },
-            { key: 'none', label: 'Say it’s the company’s choice', says: 'A little up in both (+0.2): nobody feels passed over.', sure: { regions: [[A.id, 0.2], [B.id, 0.2]] }, done: 'Nobody felt passed over.' },
+            { key: 'none', label: 'Say it’s the company’s choice', says: 'A little up in both (+0.5): nobody feels passed over.', sure: { regions: [[A.id, 0.5], [B.id, 0.5]] }, done: 'Nobody felt passed over.' },
           ], { region: A.id, defaultKey: 'none' }));
       }
     } else if (t.kind === 'flood') {

@@ -244,6 +244,15 @@ test('no kind of crisis repeats more than its share in a campaign', () => {
   }
 });
 
+test('saying a new factory is the company’s choice is worth more in all than backing one region', () => {
+  const st = fresh('factory-1');
+  const [d] = crisisDecisions(st, country, [{ kind: 'factory', region: 2, other: 4, company: 'Brightline Motors', jobs: 3000 }], st.week);
+  const total = key => d.options.find(o => o.key === key).sure.regions.reduce((a, [, p]) => a + p, 0);
+  // So it's the right answer when both regions matter about as much, and backing one is when one matters more.
+  assert.ok(total('none') > total('a') && total('none') > total('b'));
+  assert.ok(Math.max(...d.options.find(o => o.key === 'none').sure.regions.map(([, p]) => p)) < 1.4);
+});
+
 test('a strike and a factory bid each ask both campaigns for a decision', () => {
   const st = fresh('econ-1');
   const ds = crisisDecisions(st, country, [{ kind: 'strike', region: 3 }, { kind: 'factory', region: 2, other: 4, company: 'Brightline Motors', jobs: 3000 }], st.week);
