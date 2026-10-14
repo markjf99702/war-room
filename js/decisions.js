@@ -45,7 +45,7 @@ export const ISSUES = [
     options: [
       { key: 'back', label: 'Back it', fx: [['north', 1.4], ['metro', -0.5]], says: 'Up in the north, down a little in the big cities.' },
       { key: 'oppose', label: 'Oppose it', fx: [['metro', 0.7], ['north', -1.2]], says: 'Up in the cities, down in the north.' },
-      { key: 'study', label: 'Call for a study', fx: [['all', -0.1]], says: 'Nobody’s angry and nobody’s moved.' },
+      { key: 'study', label: 'Call for a study', fx: [['all', -0.1]], says: 'Nobody’s angry, but it looks like a dodge: a touch down everywhere.' },
     ],
   },
   {
@@ -72,7 +72,7 @@ export const ISSUES = [
     options: [
       { key: 'back', label: 'Back the turbines', fx: [['urban', 0.8], ['coast', 0.3], ['rural', -0.9]], says: 'Up in the cities and on the coast, down in the hills.' },
       { key: 'block', label: 'Block them', fx: [['rural', 0.9], ['urban', -0.7]], says: 'Up in the hills, down in the cities.' },
-      { key: 'local', label: 'Let each region decide', fx: [['rural', 0.3], ['urban', -0.1]], says: 'A small gain in the hills.' },
+      { key: 'local', label: 'Let each region decide', fx: [['rural', 0.3], ['urban', -0.1]], says: 'A small gain in the hills, a touch down in the cities.' },
     ],
   },
   {
@@ -81,7 +81,7 @@ export const ISSUES = [
     options: [
       { key: 'raise', label: 'Raise it', fx: [['urban', 1.1], ['rural', -0.6]], says: 'Up in the cities, down in the towns.' },
       { key: 'hold', label: 'Hold it where it is', fx: [['rural', 0.6], ['urban', -0.8]], says: 'Up in the towns, down in the cities.' },
-      { key: 'slow', label: 'Raise it slowly over four years', fx: [['urban', 0.4], ['rural', -0.1]], says: 'A little up in the cities.' },
+      { key: 'slow', label: 'Raise it slowly over four years', fx: [['urban', 0.4], ['rural', -0.1]], says: 'A little up in the cities, a touch down in the towns.' },
     ],
   },
   {
@@ -115,7 +115,7 @@ export const ISSUES = [
     key: 'hospitals', title: 'Small-town hospitals',
     text: 'Three small hospitals are due to close, with one big new one planned in the city.',
     options: [
-      { key: 'save', label: 'Keep all three open', cost: 2, fx: [['rural', 1.1], ['urban', -0.3]], says: 'Up in the countryside, for $2M in promises.' },
+      { key: 'save', label: 'Keep all three open', cost: 2, fx: [['rural', 1.1], ['urban', -0.3]], says: 'Up in the countryside, a little down in the cities, for $2M in promises.' },
       { key: 'merge', label: 'Build the big new one', fx: [['urban', 0.8], ['rural', -1.0]], says: 'Up in the cities, down in the countryside.' },
       { key: 'one', label: 'Save the busiest of the three', fx: [['rural', 0.4]], says: 'A little up in the countryside.' },
     ],
@@ -124,7 +124,7 @@ export const ISSUES = [
     key: 'housing', title: 'City rents',
     text: 'Rents in Port Ansel and Carrowmouth are up a fifth in two years.',
     options: [
-      { key: 'build', label: 'Build 100,000 homes', fx: [['metro', 1.2], ['rural', -0.2]], says: 'Up in the big cities.' },
+      { key: 'build', label: 'Build 100,000 homes', fx: [['metro', 1.2], ['rural', -0.2]], says: 'Up in the big cities, a touch down in the countryside.' },
       { key: 'cap', label: 'Cap the rents', gamble: { p: 0.55, win: [['metro', 1.5]], lose: [['metro', 0.3], ['all', -0.3]], winSays: 'Renters loved it.', loseSays: 'Economists lined up against it.' }, says: 'A gamble: a big gain in the cities, or a small one and a scolding everywhere.' },
       { key: 'market', label: 'Leave it to the market', fx: [['rural', 0.4], ['metro', -0.8]], says: 'Up a little in the countryside, down in the cities.' },
     ],

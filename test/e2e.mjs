@@ -290,6 +290,7 @@ assert.ok(await focusIn('.menu-btn'));
 await page.keyboard.press('Enter');
 await page.keyboard.press('Enter'); // How to play
 assert.ok(await focusIn('.sheet'), 'How to play has the focus');
+assert.match(await page.textContent('.sheet'), /Ads cost more where more people live\./, 'How to play says what ads cost');
 assert.ok(await page.$$eval('.sheet ul li', lis => lis.every(li => getComputedStyle(li).display === 'flex')), 'one item in “Each week” has a bullet');
 await page.keyboard.press('Escape');
 assert.ok(await focusIn('.menu-btn'), 'closing How to play hands the focus back');

@@ -18,7 +18,7 @@ export function showHelp(ctx) {
     h('h3', {}, 'Each week'),
     h('ul', {},
       h('li', { class: 'glyph-row' }, icon(glyph.pawn(0, 'C')), h('span', {}, h('b', {}, 'Your candidate and running mate. '), `Send each to a region for a rally (it spills over a little into the neighbours), or leave them fundraising (+$${FUNDRAISE.cand}M and +$${FUNDRAISE.mate}M for next week).`)),
-      h('li', { class: 'glyph-row' }, icon(glyph.ads(0, 2)), h('span', {}, h('b', {}, 'Ads. '), 'Light, steady or heavy, bought fresh each week. The first level does the most. Ads in big cities cost more.')),
+      h('li', { class: 'glyph-row' }, icon(glyph.ads(0, 2)), h('span', {}, h('b', {}, 'Ads. '), 'Light, steady or heavy, bought fresh each week. The first level does the most. Ads cost more where more people live.')),
       h('li', { class: 'glyph-row' }, icon(glyph.office(0)), h('span', {}, h('b', {}, 'Field offices. '), `Once open, an office gets out your vote: +${OFFICE_GAIN} a week, every week until election day. Open them early.`)),
       h('li', { class: 'glyph-row' }, icon(glyph.poll()), h('span', {}, h('b', {}, 'Polls. '), `$${POLL_COST}M each. Results arrive in Monday’s memo, along with what your rival is running there.`)),
       h('li', { class: 'glyph-row' }, h('span', { style: 'width:26px;flex:none', 'aria-hidden': 'true' }), h('span', {}, `You get $${INCOME}M a week on top of fundraising, and unspent money carries over.`))),

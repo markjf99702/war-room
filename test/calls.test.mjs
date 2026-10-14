@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { makeCountry } from '../js/country.js';
-import { newCampaign, chooseMate, resolveWeek, emptyPlan, ownEffect, trueMargin, planCost, income } from '../js/campaign.js';
+import { newCampaign, chooseMate, resolveWeek, emptyPlan, ownEffect, trueMargin, planCost, income, adUnit } from '../js/campaign.js';
 import { planFor, decideAll, decide } from '../js/ai.js';
 import { choose, openFor, promiseFor, crisisDecisions, issueDecisions, resurfaceDecision, resolveDecisions, ISSUES } from '../js/decisions.js';
 import { debateSetup, autoAnswers, exchange, debateOutcome, STYLE_KEYS } from '../js/debate.js';
@@ -169,6 +169,17 @@ test('changing your mind undoes the old position, even one taken as a gamble', (
         `${issue}: ${first} (${took.result || 'sure'}) left ${(p - want[k]).toFixed(2)} in ${country.regions[k].name} after switching`));
     }
   }
+});
+
+test('every position says where it loses ground, not just where it gains', () => {
+  for (const i of ISSUES) for (const o of i.options) {
+    if (o.fx?.some(([, pts]) => pts < 0)) assert.match(o.says, /down|barely/i, `${i.title}: “${o.label}” doesn’t say where it costs`);
+  }
+});
+
+test('ads cost more where more people live, as How to play says', () => {
+  const byPop = [...country.regions].sort((a, b) => a.pop - b.pop);
+  for (let i = 1; i < byPop.length; i++) assert.ok(adUnit(byPop[i]) >= adUnit(byPop[i - 1]), `${byPop[i].name} is cheaper than ${byPop[i - 1].name}`);
 });
 
 test('every issue offers a real choice', () => {
