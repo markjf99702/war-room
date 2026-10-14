@@ -129,7 +129,9 @@ await page.goto(base);
 await page.evaluate(() => document.fonts.ready);
 await fits('the title screen');
 
-// A new campaign, as Highland on Easy.
+// A new campaign, as Highland on Easy. The page picks its seed with Math.random; it's the same one every run, so
+// the double tap below always has a running mate under the second tap (about one seed in sixty doesn't).
+await page.evaluate(() => { Math.random = () => 0.37; });
 await page.click('.party-card[data-side="1"]');
 await page.click('.diff-pick button[data-key="easy"]');
 // Started with a quick double tap: the second tap lands on a running mate, and is ignored.
