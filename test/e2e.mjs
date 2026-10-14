@@ -129,6 +129,16 @@ await fits('the ticket');
 await page.click('.mate-card >> nth=1');
 assert.equal(await page.textContent('#weekChip b'), '1');
 await fits('the war room');
+// On a narrow phone the top bar still fits, and the menu button and End week stay on screen.
+for (const [w, ht] of [[360, 780], [320, 640]]) {
+  await page.setViewportSize({ width: w, height: ht });
+  await fits(`the war room at ${w}px`);
+  assert.ok(await page.evaluate(() => [...document.querySelectorAll('.menu-btn, .planbar .btn.stamp')].every(el => {
+    const r = el.getBoundingClientRect();
+    return r.left >= 0 && r.right <= innerWidth && r.bottom <= innerHeight && r.width >= 40;
+  })), `the menu button and End week are on screen at ${w}px`);
+}
+await page.setViewportSize({ width: 390, height: 844 });
 
 // Plan a week by hand: the candidate to New Aldham, steady ads, a field office and a poll.
 await pick('New Aldham');
