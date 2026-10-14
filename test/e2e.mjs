@@ -78,6 +78,15 @@ const pick = name => page.evaluate(n => {
   const k = window.warroom.country.regions.findIndex(g => g.name === n);
   document.querySelector(`.board .reg[data-k="${k}"]`).dispatchEvent(new MouseEvent('click', { bubbles: true }));
 }, name);
+// WCAG contrast between two computed colours, "rgb(…)" or "rgba(…)".
+function contrast(fg, bg) {
+  const lum = c => {
+    const [r, g, b] = c.match(/[\d.]+/g).slice(0, 3).map(v => v / 255).map(v => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const [x, y] = [lum(fg), lum(bg)].sort((p, q) => q - p);
+  return (x + 0.05) / (y + 0.05);
+}
 const mine = () => page.evaluate(() => { const s = window.warroom.ctx.state; return { week: s.week, chosen: s.pending.filter(d => d.side === s.side && d.chosen).length }; });
 // A quick double tap: the first tap changes the screen, and the second lands on whatever is under the finger
 // now (`then`). Dispatched in the page, so the second tap comes at once. With 'mouse' it's a double click.
@@ -244,6 +253,20 @@ await load(plantCall());
 await page.click('.call-opt:has-text("Promise a rescue fund")');
 await page.click('.paper-actions .btn');
 assert.equal(await page.textContent('#moneyChip'), `$${await page.evaluate(() => window.warroom.ctx.state.money[0])}M`, 'the money shown is what’s in the bank');
+
+// In dark mode the confirm box's buttons can be read, and its own button is the red one.
+await page.emulateMedia({ colorScheme: 'dark' });
+await page.click('.menu-btn');
+await page.click('.menu >> text=Give up this campaign');
+const askColours = await page.evaluate(() => {
+  const css = el => getComputedStyle(el);
+  const [no, yes] = document.querySelectorAll('[role="alertdialog"] .btn');
+  return { no: css(no).color, sheet: css(document.querySelector('[role="alertdialog"]')).backgroundColor, yes: css(yes).backgroundColor, stamp: css(document.querySelector('.planbar .btn.stamp')).backgroundColor };
+});
+assert.ok(contrast(askColours.no, askColours.sheet) >= 4.5, `Cancel is ${askColours.no} on ${askColours.sheet}`);
+assert.equal(askColours.yes, askColours.stamp, '“Give up” is red');
+await page.keyboard.press('Escape');
+await page.emulateMedia({ colorScheme: 'light' });
 
 // A challenge link starts the same campaign.
 await page.goto(`${base}?c=${seed}&p=1&d=easy&s=64`);
