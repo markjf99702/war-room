@@ -142,13 +142,19 @@ function header() {
   return bar;
 }
 
+// The menu takes the focus when it opens. Escape closes it, and the focus goes back to the menu button,
+// which is also where a sheet opened from the menu hands it back.
+let closeMenu = null;
 function toggleMenu(btn) {
-  const open = $('.menu');
-  if (open) { open.remove(); btn.setAttribute('aria-expanded', 'false'); return; }
+  if (closeMenu) { closeMenu(); return; }
   btn.setAttribute('aria-expanded', 'true');
-  const close = () => { menu.remove(); btn.setAttribute('aria-expanded', 'false'); document.removeEventListener('click', outside, true); };
+  const close = () => {
+    menu.remove(); btn.setAttribute('aria-expanded', 'false'); closeMenu = null;
+    document.removeEventListener('click', outside, true); document.removeEventListener('keydown', onKey);
+  };
   const outside = e => { if (!menu.contains(e.target) && e.target !== btn && !btn.contains(e.target)) close(); };
-  const item = (label, fn) => h('button', { type: 'button', onclick: () => { close(); fn(); } }, label);
+  const onKey = e => { if (e.key === 'Escape') { close(); btn.focus(); } };
+  const item = (label, fn) => h('button', { type: 'button', onclick: () => { close(); btn.focus(); fn(); } }, label);
   const st = ctx.state;
   const menu = h('nav', { class: 'menu' },
     item('How to play', () => showHelp(ctx)),
@@ -156,7 +162,10 @@ function toggleMenu(btn) {
     item('Title screen', () => go('title')),
     st && st.phase !== 'done' ? item('Give up this campaign', async () => { if (await ask('Give up this campaign?', { yes: 'Give up', detail: 'It can’t be picked up again.' })) ctx.abandon(); }) : null);
   document.body.append(menu);
+  closeMenu = close;
+  menu.querySelector('button').focus();
   setTimeout(() => document.addEventListener('click', outside, true));
+  document.addEventListener('keydown', onKey);
 }
 
 export function svgIcon(d) {

@@ -48,7 +48,9 @@ export function renderHQ(root, ctx) {
     legend,
     h('p', { class: 'legend-note' }, 'Colours are your campaign’s best guess for election day. Dashed circles: where your rival campaigned last week.'));
   const side = h('section', { class: 'side-col' });
-  const main = h('main', { class: 'hq', 'data-tab': ui.tab }, h('section', { class: 'board-col' }, tabs, boardWrap), side);
+  // What a change did to the money and the odds, for screen readers (rather than the whole panel again).
+  const said = h('p', { class: 'sr', 'aria-live': 'polite' });
+  const main = h('main', { class: 'hq', 'data-tab': ui.tab }, h('section', { class: 'board-col' }, tabs, boardWrap), side, said);
   const bar = h('div', { class: 'planbar' });
   root.append(main, bar);
 
@@ -73,6 +75,7 @@ export function renderHQ(root, ctx) {
   function changed() {
     ctx.save();
     refresh();
+    said.textContent = `${money(left())} left. ${chance(ui.fc.p)} to win.`;
   }
 
   function refresh() {
@@ -129,14 +132,18 @@ export function renderHQ(root, ctx) {
     if (mc) mc.textContent = money(st.money[me]);
   }
 
+  // Like the main menu, it takes the focus, and Escape closes it and goes back to the piece.
+  let closePieceMenu = null;
   function pieceMenu(who) {
-    $('.piece-menu')?.remove();
+    closePieceMenu?.();
     const person = who === 'cand' ? cand : mate;
-    const close = () => { menu.remove(); document.removeEventListener('click', outside, true); };
+    const chip = () => bar.querySelectorAll('.pb-piece')[who === 'cand' ? 0 : 1];
+    const close = () => { menu.remove(); closePieceMenu = null; document.removeEventListener('click', outside, true); document.removeEventListener('keydown', onKey); };
     const outside = e => { if (!menu.contains(e.target)) close(); };
+    const onKey = e => { if (e.key === 'Escape') { close(); chip().focus(); } };
     const opt = (value, label, sub) => h('button', {
       type: 'button', 'aria-pressed': String(plan[who] === value),
-      onclick: () => { plan[who] = value; close(); changed(); },
+      onclick: () => { plan[who] = value; close(); changed(); chip().focus(); },
     }, label, h('small', {}, sub));
     const menu = h('div', { class: 'piece-menu', role: 'dialog', 'aria-label': `Where ${person.name} goes this week` },
       h('p', {}, `Where does ${person.name} spend week ${st.week}?`),
@@ -145,7 +152,10 @@ export function renderHQ(root, ctx) {
       Number.isInteger(plan[who]) ? opt(plan[who], `Rally in ${R(plan[who]).name}`, 'Where they’re going now') : null,
       h('p', { style: 'margin-top:6px' }, 'To hold a rally, tap a region on the map and send them there.'));
     document.body.append(menu);
+    closePieceMenu = close;
+    (menu.querySelector('[aria-pressed="true"]') || menu.querySelector('button')).focus();
     setTimeout(() => document.addEventListener('click', outside, true));
+    document.addEventListener('keydown', onKey);
   }
 
   function strategist() {
@@ -157,7 +167,7 @@ export function renderHQ(root, ctx) {
 
   async function endWeek() {
     if (st.week === WEEKS && left() >= 3 && !await ask(`You still have ${money(left())} to spend.`, { yes: 'Vote anyway', no: 'Keep planning', detail: 'Money left after election day is worth nothing.' })) return;
-    $('.piece-menu')?.remove();
+    closePieceMenu?.();
     ctx.endWeek();
   }
 
@@ -324,7 +334,7 @@ export function renderHQ(root, ctx) {
     const pos = v => `${((Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo) * 100).toFixed(1)}%`;
     const bandCol = x.mean >= 0 ? 'var(--r-t2)' : 'var(--r-h2)';
 
-    return h('div', { class: 'panel', 'aria-live': 'polite' },
+    return h('div', { class: 'panel' },
       h('div', { class: 'rp-head' },
         h('h2', { class: 'rp-name' }, g.name),
         h('span', { class: 'rp-el' }, plural(g.electors, 'elector')),

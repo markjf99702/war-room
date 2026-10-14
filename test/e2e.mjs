@@ -272,6 +272,31 @@ await page.click('.call-opt:has-text("Promise a rescue fund")');
 await page.click('.paper-actions .btn');
 assert.equal(await page.textContent('#moneyChip'), `$${await page.evaluate(() => window.warroom.ctx.state.money[0])}M`, 'the money shown is what’s in the bank');
 
+// From the keyboard: the menus take the focus, Escape closes them and hands it back, and so does How to play.
+const focusIn = sel => page.evaluate(s => !!document.activeElement?.closest(s), sel);
+await page.focus('.menu-btn');
+await page.keyboard.press('Enter');
+assert.ok(await focusIn('.menu'), 'the menu has the focus');
+await page.keyboard.press('Escape');
+assert.equal(await page.locator('.menu').count(), 0, 'Escape closes the menu');
+assert.ok(await focusIn('.menu-btn'));
+await page.keyboard.press('Enter');
+await page.keyboard.press('Enter'); // How to play
+assert.ok(await focusIn('.sheet'), 'How to play has the focus');
+await page.keyboard.press('Escape');
+assert.ok(await focusIn('.menu-btn'), 'closing How to play hands the focus back');
+await page.focus('.pb-piece');
+await page.keyboard.press('Enter');
+assert.ok(await focusIn('.piece-menu'), 'the piece menu has the focus');
+await page.keyboard.press('Escape');
+assert.equal(await page.locator('.piece-menu').count(), 0, 'Escape closes the piece menu');
+assert.ok(await focusIn('.pb-piece'));
+// A screen reader hears what a change did to the money and the odds, not the whole region panel again.
+await pick('New Aldham');
+assert.equal(await page.locator('.side-col [aria-live]').count(), 0);
+await page.click('.seg button >> nth=1');
+assert.match(await page.textContent('.hq > [aria-live]'), /^\$\d+M left\. .+ to win\.$/);
+
 // In dark mode the pressed buttons, the pieces, the ratings and the rival's ghost pieces can be read, and
 // the confirm box's buttons too, its own button being the red one.
 await page.emulateMedia({ colorScheme: 'dark' });

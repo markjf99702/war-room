@@ -8,10 +8,12 @@ function icon(gl) {
   return s('svg', { viewBox: '-8 -8 16 16', 'aria-hidden': 'true', class: 'map' }, gl.el);
 }
 
+// The sheet takes the focus when it opens and gives it back when it closes.
 export function showHelp(ctx) {
+  const back = document.activeElement;
   const n = ctx.country.regions.length;
   const sheet = h('div', { class: 'sheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'How to play' },
-    h('h2', {}, 'How to play'),
+    h('h2', { tabindex: '-1' }, 'How to play'),
     h('p', {}, `Aldermere elects its president region by region. Each of its ${n} regions has electors, and whoever carries a region takes all of them. ${ctx.country.majority} of ${ctx.country.totalElectors} wins. You have ${WEEKS} weeks.`),
     h('h3', {}, 'Each week'),
     h('ul', {},
@@ -36,9 +38,10 @@ export function showHelp(ctx) {
     jdFoot());
   const overlay = h('div', { class: 'overlay', onclick: e => { if (e.target === overlay) close(); } }, sheet);
   const onKey = e => { if (e.key === 'Escape') close(); };
-  function close() { overlay.remove(); document.body.style.overflow = ''; document.removeEventListener('keydown', onKey); settle(); }
+  function close() { overlay.remove(); document.body.style.overflow = ''; document.removeEventListener('keydown', onKey); settle(); if (back?.isConnected) back.focus(); }
   document.addEventListener('keydown', onKey);
   document.body.style.overflow = 'hidden';
   document.body.append(overlay);
   settle();
+  sheet.querySelector('h2').focus();
 }
