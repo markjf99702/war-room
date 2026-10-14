@@ -107,9 +107,18 @@ export function newCampaign(country, { seed, side = 0, difficulty = 'normal' }) 
     return r.shuffle([...traits]).map((trait, j) => ({ ...person(r, used), home: homes[j], trait, title: titleFor(r, country.regions[homes[j]], false) }));
   });
 
-  // The last election, which both campaigns start from: it was fought on the old map.
-  const lastMood = +(r.gauss() * 3).toFixed(1);
-  const last = country.regions.map(g => +(g.lean + lastMood + r.gauss() * 1.5).toFixed(1));
+  // The last election, which both campaigns start from: it was fought on the old map, and the party in
+  // power won it. Its national swing goes their way, and further, half a point at a time, if the local
+  // noise still left them short. (The model reads each region against the national polls since, so moving
+  // the whole of the last election doesn't change what either campaign believes now.)
+  let lastMood = +(Math.abs(r.gauss() * 3) * sign(incumbent)).toFixed(1);
+  const noise = country.regions.map(() => r.gauss() * 1.5);
+  const lastAt = m => country.regions.map((g, k) => +(g.lean + m + noise[k]).toFixed(1));
+  let last = lastAt(lastMood);
+  while ((electorsFor(country, last) >= country.majority ? 0 : 1) !== incumbent) {
+    lastMood = +(lastMood + 0.5 * sign(incumbent)).toFixed(1);
+    last = lastAt(lastMood);
+  }
   const lastNat = popular(country, last);
   const lastE = electorsFor(country, last);
   const lastWinner = lastE >= country.majority ? 0 : 1;

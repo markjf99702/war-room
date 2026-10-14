@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { makeCountry } from '../js/country.js';
 import {
-  newCampaign, chooseMate, resolveWeek, finalResult, planCost, clampPlan, emptyPlan, estimate, WEEKS,
+  newCampaign, chooseMate, resolveWeek, finalResult, planCost, clampPlan, emptyPlan, estimate, electorsFor, WEEKS,
 } from '../js/campaign.js';
 import { planFor } from '../js/ai.js';
 import { forecast } from '../js/forecast.js';
@@ -126,6 +126,18 @@ test('campaigning beats not campaigning', () => {
     if (res.winner === 0) wins++;
   }
   assert.ok(wins >= 14, `a real campaign won ${wins} of 16 against one that did nothing`);
+});
+
+test('the party in power won the last election, as the ticket says', () => {
+  for (let i = 0; i < 60; i++) {
+    const st = newCampaign(country, { seed: `last-${i}` });
+    assert.equal(st.lastWinner, st.incumbent, `last-${i}: the party in power lost four years ago`);
+    assert.equal(st.lastElectors[0], electorsFor(country, st.last));
+    assert.ok(st.lastElectors[st.incumbent] >= country.majority);
+  }
+  // The example the lab found: Highland in power, but "four years ago the election went Tidewater, 74 to 47".
+  const st = newCampaign(country, { seed: 'lab1' });
+  assert.deepEqual([st.incumbent, st.lastWinner], [1, 1]);
 });
 
 test('eight weeks, then election night', () => {

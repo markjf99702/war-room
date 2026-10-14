@@ -141,6 +141,7 @@ await page.touchscreen.tap(sx, sy);
 assert.equal(await page.evaluate(() => window.warroom.ctx.state.phase), 'mate', 'a stray tap picked the running mate');
 assert.ok(await page.evaluate(([x, y]) => !!document.elementFromPoint(x, y)?.closest('.mate-card'), [sx, sy]), 'the second tap was over a running mate');
 assert.match(await page.textContent('.ticket'), /Pick a running mate/);
+assert.match(await page.textContent('.ticket .lede'), /^The (Tidewater|Highland) Party holds the presidency\. Four years ago the election went \1,/, 'the party in power lost the last election');
 await fits('the ticket');
 await page.click('.mate-card >> nth=1');
 assert.equal(await page.textContent('#weekChip b'), '1');
