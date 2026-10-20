@@ -199,6 +199,17 @@ test('every position says where it loses ground, not just where it gains', () =>
   }
 });
 
+// Counted by electors, so which side pays depends on where this campaign is close.
+test('backing the wind farms and blocking them both gain ground across the map', () => {
+  const st = fresh('two-sided-wind');
+  st.issuesSeen = ISSUES.filter(i => i.key !== 'wind').map(i => i.key);
+  const [d] = issueDecisions(st, country, 1);
+  for (const o of d.options.filter(x => ['back', 'block'].includes(x.key))) {
+    const across = o.stance.regions.reduce((sum, [k, pts]) => sum + pts * country.regions[k].electors, 0);
+    assert.ok(across > 0, `“${o.label}” loses ground across the map: ${across.toFixed(1)} elector-points`);
+  }
+});
+
 test('ads cost more where more people live, as How to play says', () => {
   const byPop = [...country.regions].sort((a, b) => a.pop - b.pop);
   for (let i = 1; i < byPop.length; i++) assert.ok(adUnit(byPop[i]) >= adUnit(byPop[i - 1]), `${byPop[i].name} is cheaper than ${byPop[i - 1].name}`);

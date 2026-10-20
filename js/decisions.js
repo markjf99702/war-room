@@ -71,7 +71,7 @@ export const ISSUES = [
     text: 'A developer wants two hundred turbines in the hills. Jobs and clean power, or a blight on the view?',
     options: [
       { key: 'back', label: 'Back the turbines', fx: [['urban', 0.8], ['coast', 0.3], ['rural', -0.9]], says: 'Up in the cities and on the coast, down in the hills.' },
-      { key: 'block', label: 'Block them', fx: [['rural', 0.9], ['urban', -0.7]], says: 'Up in the hills, down in the cities.' },
+      { key: 'block', label: 'Block them', fx: [['rural', 1.3], ['urban', -0.4]], says: 'Up in the hills, down a little in the cities.' },
       { key: 'local', label: 'Let each region decide', fx: [['rural', 0.3], ['urban', -0.1]], says: 'A small gain in the hills, a touch down in the cities.' },
     ],
   },
