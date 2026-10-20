@@ -13,7 +13,7 @@ const LAST = ['Quill', 'Brandt', 'Harlow', 'Mercer', 'Ashdown', 'Whitcombe', 'Ok
   'Abernathy', 'Gilchrist', 'Hartigan', 'Penrose', 'Albright', 'Coombs', 'Everly', 'Tolliver', 'Ravel'];
 
 export const TRAITS = {
-  fundraiser: { label: 'Fundraiser', text: 'Brings in $2M more every week.' },
+  fundraiser: { label: 'Fundraiser', text: 'Brings in $3M more every week.' },
   stumper: { label: 'Crowd-pleaser', text: 'Rallies land three-quarters as hard as the candidate’s, not half.' },
   debater: { label: 'Debate coach', text: 'Better odds in both debates.' },
 };

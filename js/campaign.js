@@ -58,7 +58,7 @@ export function planCost(plan, country) {
 
 export function income(state, s, plan) {
   let m = INCOME;
-  if (state.mates[s]?.trait === 'fundraiser') m += 2;
+  if (state.mates[s]?.trait === 'fundraiser') m += 3;
   if (plan.cand === 'fund') m += FUNDRAISE.cand;
   if (plan.mate === 'fund') m += FUNDRAISE.mate;
   return m;

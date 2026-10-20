@@ -6,6 +6,7 @@ import { newCampaign, chooseMate, resolveWeek, emptyPlan, ownEffect, trueMargin,
 import { planFor, decideAll, decide } from '../js/ai.js';
 import { choose, openFor, promiseFor, crisisDecisions, issueDecisions, resurfaceDecision, resolveDecisions, ISSUES } from '../js/decisions.js';
 import { debateSetup, autoAnswers, exchange, debateOutcome, STYLE_KEYS } from '../js/debate.js';
+import { TRAITS } from '../js/names.js';
 
 const country = makeCountry();
 const blank = () => emptyPlan(country.regions.length);
@@ -335,4 +336,12 @@ test('a strike and a factory bid each ask both campaigns for a decision', () => 
   const ds = crisisDecisions(st, country, [{ kind: 'strike', region: 3 }, { kind: 'factory', region: 2, other: 4, company: 'Brightline Motors', jobs: 3000 }], st.week);
   assert.deepEqual(ds.map(d => `${d.kind}:${d.side}`), ['strike:0', 'strike:1', 'factory:0', 'factory:1']);
   for (const d of ds) assert.equal(d.options.length, 3);
+});
+
+test('a fundraiser running mate brings in $3M more every week, as the ticket says', () => {
+  const st = fresh('fundraiser-1');
+  const raised = trait => income({ ...st, mates: [{ ...st.mates[0], trait }, st.mates[1]] }, 0, blank());
+  assert.equal(raised('fundraiser') - raised('stumper'), 3);
+  assert.equal(raised('debater'), raised('stumper'));
+  assert.equal(TRAITS.fundraiser.text, 'Brings in $3M more every week.');
 });
