@@ -140,6 +140,16 @@ test('the party in power won the last election, as the ticket says', () => {
   assert.deepEqual([st.incumbent, st.lastWinner], [1, 1]);
 });
 
+test('the party in power starts with a small edge in the national mood', () => {
+  // Without it, the party in power won about 46% of even games. On Normal the mood is otherwise a toss-up.
+  let edge = 0;
+  for (let i = 0; i < 200; i++) {
+    const st = newCampaign(country, { seed: `inc-${i}` });
+    edge += st.mood * (st.incumbent === 0 ? 1 : -1) / 200;
+  }
+  assert.ok(Math.abs(edge - 0.5) < 0.25, `the party in power starts ${edge.toFixed(2)} ahead on average`);
+});
+
 test('eight weeks, then election night', () => {
   const { st } = playOut('weeks-1');
   assert.equal(st.history.length, WEEKS);

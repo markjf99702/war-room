@@ -18,6 +18,7 @@ export const POLL_COST = 1;
 export const AD_NAMES = ['None', 'Light', 'Steady', 'Heavy'];
 export const OFFICE_GAIN = 0.3; // points a field office adds each week it's open
 export const HOME_BONUS = { cand: 2, mate: 1 };
+export const INCUMBENCY = 0.5; // points of national mood the party in power starts with
 export const POLL_SD = { own: 2.2, public: 3.2, last: 4, national: 1.2 };
 export const FOG = 1.1; // how many points an estimate goes stale each week without a poll
 // How much of a side's own work (and what it has seen of the rival's) its model counts before a poll confirms it.
@@ -76,8 +77,11 @@ export function newCampaign(country, { seed, side = 0, difficulty = 'normal' }) 
   const centre = evenShift(country, leans, `${seed}:centre`);
   leans = leans.map(l => +(l - centre).toFixed(2));
 
-  const mood = +(diff.mood * sign(side) + r.gauss() * (difficulty === 'normal' ? 1.4 : 0.6)).toFixed(2);
+  let mood = +(diff.mood * sign(side) + r.gauss() * (difficulty === 'normal' ? 1.4 : 0.6)).toFixed(2);
   const incumbent = r.int(0, 1);
+  // The party in power starts with a small edge. It has to answer for a plant closing or a flood, and for its
+  // record in the debates, and without the edge it won about 46% of even games.
+  mood = +(mood + INCUMBENCY * sign(incumbent)).toFixed(2);
 
   const regions = country.regions.map((g, k) => ({
     lean: leans[k], home: 0, drift: 0, evt: 0,
