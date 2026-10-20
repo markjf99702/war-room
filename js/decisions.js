@@ -43,8 +43,8 @@ export const ISSUES = [
     key: 'rail', title: 'The Northern Rail Link',
     text: 'A new line across the north, from Kingsferry to the coast. The interior wants it; the cities call it money for somebody else’s commute.',
     options: [
-      { key: 'back', label: 'Back it', fx: [['north', 1.4], ['metro', -0.5]], says: 'Up in the north, down a little in the big cities.' },
-      { key: 'oppose', label: 'Oppose it', fx: [['metro', 0.7], ['north', -1.2]], says: 'Up in the cities, down in the north.' },
+      { key: 'back', label: 'Back it', fx: [['north', 1.2], ['metro', -0.8], ['south', -0.4]], says: 'Up in the north, down in the big cities and a little in the south.' },
+      { key: 'oppose', label: 'Oppose it', fx: [['metro', 1.0], ['south', 0.6], ['north', -0.6]], says: 'Up in the cities and the south, down in the north.' },
       { key: 'study', label: 'Call for a study', fx: [['all', -0.1]], says: 'Nobody’s angry, but it looks like a dodge: a touch down everywhere.' },
     ],
   },

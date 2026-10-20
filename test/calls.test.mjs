@@ -146,6 +146,17 @@ test('a position on an issue moves the regions it names, and counts as your own 
   assert.ok(st.stances[0][d.issue], 'it’s on the record');
 });
 
+// Counted by electors, so which side pays depends on where this campaign is close.
+test('backing the rail link and opposing it both gain ground across the map', () => {
+  const st = fresh('two-sided-rail');
+  st.issuesSeen = ISSUES.filter(i => i.key !== 'rail').map(i => i.key);
+  const [d] = issueDecisions(st, country, 1);
+  for (const o of d.options.filter(x => ['back', 'oppose'].includes(x.key))) {
+    const across = o.stance.regions.reduce((sum, [k, pts]) => sum + pts * country.regions[k].electors, 0);
+    assert.ok(across > 0, `“${o.label}” loses ground across the map: ${across.toFixed(1)} elector-points`);
+  }
+});
+
 test('changing your mind undoes the old position, even one taken as a gamble', () => {
   for (const [issue, first] of [['vesland', 'firm'], ['housing', 'cap'], ['farms', 'extend']]) {
     for (const seed of ['flip-1', 'flip-2', 'flip-3', 'flip-4']) {
