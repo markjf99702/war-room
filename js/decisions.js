@@ -107,7 +107,7 @@ export const ISSUES = [
     text: 'Petrol is at a record price. Cut the tax, or keep the money for the roads?',
     options: [
       { key: 'cut', label: 'Cut it', fx: [['rural', 1.0], ['inland', 0.3], ['urban', -0.3]], says: 'Up in the countryside, down a little in the cities.' },
-      { key: 'keep', label: 'Keep it and fix the roads', fx: [['urban', 0.4], ['rural', -0.8]], says: 'Up a little in the cities, down in the countryside.' },
+      { key: 'keep', label: 'Keep it and fix the roads', fx: [['urban', 0.9], ['rural', -0.4]], says: 'Up in the cities, down a little in the countryside.' },
       { key: 'freeze', label: 'Freeze it for a year', fx: [['rural', 0.3]], says: 'A small gain in the countryside.' },
     ],
   },

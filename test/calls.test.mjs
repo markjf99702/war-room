@@ -234,6 +234,17 @@ test('every issue offers a real choice', () => {
   }
 });
 
+// Counted by electors, so which side pays depends on where this campaign is close.
+test('cutting fuel duty and keeping it both gain ground across the map', () => {
+  const st = fresh('two-sided-fuel');
+  st.issuesSeen = ISSUES.filter(i => i.key !== 'fuel').map(i => i.key);
+  const [d] = issueDecisions(st, country, 1);
+  for (const o of d.options.filter(x => ['cut', 'keep'].includes(x.key))) {
+    const across = o.stance.regions.reduce((sum, [k, pts]) => sum + pts * country.regions[k].electors, 0);
+    assert.ok(across > 0, `“${o.label}” loses ground across the map: ${across.toFixed(1)} elector-points`);
+  }
+});
+
 test('the strategist only picks calls a campaign can pay for', () => {
   const st = fresh('ai-calls');
   while (st.phase === 'plan') {
