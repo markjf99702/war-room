@@ -80,7 +80,7 @@ export const ISSUES = [
     text: 'The unions want it raised by a fifth. Small businesses in the towns say they’ll cut hours.',
     options: [
       { key: 'raise', label: 'Raise it', fx: [['urban', 1.1], ['rural', -0.6]], says: 'Up in the cities, down in the towns.' },
-      { key: 'hold', label: 'Hold it where it is', fx: [['rural', 0.6], ['urban', -0.8]], says: 'Up in the towns, down in the cities.' },
+      { key: 'hold', label: 'Hold it where it is', fx: [['rural', 1.2], ['urban', -0.4]], says: 'Up in the towns, down a little in the cities.' },
       { key: 'slow', label: 'Raise it slowly over four years', fx: [['urban', 0.4], ['rural', -0.1]], says: 'A little up in the cities, a touch down in the towns.' },
     ],
   },

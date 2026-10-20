@@ -215,6 +215,17 @@ test('ads cost more where more people live, as How to play says', () => {
   for (let i = 1; i < byPop.length; i++) assert.ok(adUnit(byPop[i]) >= adUnit(byPop[i - 1]), `${byPop[i].name} is cheaper than ${byPop[i - 1].name}`);
 });
 
+// Counted by electors, so which side pays depends on where this campaign is close.
+test('raising the minimum wage and holding it both gain ground across the map', () => {
+  const st = fresh('two-sided-wage');
+  st.issuesSeen = ISSUES.filter(i => i.key !== 'wage').map(i => i.key);
+  const [d] = issueDecisions(st, country, 1);
+  for (const o of d.options.filter(x => ['raise', 'hold'].includes(x.key))) {
+    const across = o.stance.regions.reduce((sum, [k, pts]) => sum + pts * country.regions[k].electors, 0);
+    assert.ok(across > 0, `“${o.label}” loses ground across the map: ${across.toFixed(1)} elector-points`);
+  }
+});
+
 test('every issue offers a real choice', () => {
   for (const i of ISSUES) {
     assert.equal(i.options.length, 3, i.title);
