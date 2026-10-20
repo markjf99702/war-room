@@ -1,7 +1,7 @@
 // The board: Aldermere drawn as hexes, one filled shape per region, with labels and pieces on top.
 
 import { SIZE } from '../hex.js';
-import { s } from './dom.js';
+import { s, plural } from './dom.js';
 
 let uid = 0;
 
@@ -48,16 +48,21 @@ export function makeMap(country, { onPick, compact = false, cls = '' } = {}) {
   const landD = land.map(h => hexPath(h, SIZE + 0.4)).join('');
   svg.append(s('path', { d: landD, fill: 'var(--land-shadow)', transform: 'translate(1.6 2.4)' }));
 
+  // On a map that takes taps, each region is a button for the keyboard too. They're drawn in reading order
+  // (top to bottom, then west to east), which is the order Tab takes them in.
   const regionEls = [], hatchEls = [];
   const gRegions = s('g', { class: 'regions' });
   const gHatch = s('g', { class: 'hatches', 'pointer-events': 'none' });
-  for (const g of country.regions) {
+  for (const g of [...country.regions].sort((a, b) => a.ly - b.ly || a.lx - b.lx)) {
     const d = g.hexes.map(i => hexPath(country.hexes[i])).join('');
-    const el = s('path', { d, class: 'reg', 'data-k': g.id, fill: 'var(--r-tu)' });
+    const el = s('path', {
+      d, class: 'reg', 'data-k': g.id, fill: 'var(--r-tu)',
+      tabindex: onPick ? 0 : null, role: onPick ? 'button' : null, 'aria-label': onPick ? `${g.name}, ${plural(g.electors, 'elector')}` : null,
+    });
     el.append(s('title', {}, g.name));
-    regionEls.push(el); gRegions.append(el);
+    regionEls[g.id] = el; gRegions.append(el);
     const hx = s('path', { d, class: 'hatch', fill: 'none' });
-    hatchEls.push(hx); gHatch.append(hx);
+    hatchEls[g.id] = hx; gHatch.append(hx);
   }
   svg.append(gRegions, gHatch);
   svg.append(s('path', { d: country.edges.inner.map(seg).join(''), class: 'borders', fill: 'none', 'pointer-events': 'none' }));
@@ -65,7 +70,9 @@ export function makeMap(country, { onPick, compact = false, cls = '' } = {}) {
 
   const outline = k => [...country.edges.inner.filter(e => e[2] === k || e[3] === k), ...country.edges.coast.filter(e => e[2] === k)].map(seg).join('');
   const selEl = s('path', { class: 'sel', fill: 'none', 'pointer-events': 'none', d: '' });
-  svg.append(selEl);
+  // The region the keyboard is on gets the same outline as a picked one.
+  const focusEl = s('path', { class: 'sel focus', fill: 'none', 'pointer-events': 'none', d: '' });
+  svg.append(selEl, focusEl);
   const markEls = new Map();
   const gMarks = s('g', { class: 'marks', 'pointer-events': 'none' });
   svg.append(gMarks);
@@ -130,12 +137,32 @@ export function makeMap(country, { onPick, compact = false, cls = '' } = {}) {
     const t = e.target.closest('[data-k]');
     if (onPick) onPick(t ? +t.dataset.k : null);
   });
+  // From the keyboard: Enter or Space picks the region with the focus, the way a tap does. The outline
+  // shows only when the focus came from the keyboard, not under a finger or a click. (The listeners go on the
+  // regions: on the svg, focus listeners would make Chrome stop on the whole map too.)
+  if (onPick) {
+    const showFocus = k => {
+      focusEl.setAttribute('d', k === null ? '' : outline(k));
+      labelEls.forEach((l, j) => l.lab.classList.toggle('focus', j === k));
+    };
+    regionEls.forEach((el, k) => {
+      el.addEventListener('keydown', e => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        onPick(k);
+      });
+      el.addEventListener('focus', () => showFocus(el.matches(':focus-visible') ? k : null));
+      el.addEventListener('blur', () => showFocus(null));
+    });
+  }
 
   return {
     svg, id,
     fill(k, color) { regionEls[k].setAttribute('fill', color); },
     hatch(k, key) { hatchEls[k].setAttribute('fill', key ? `url(#${id}-hatch-${key})` : 'none'); },
     regionClass(k, name, on) { regionEls[k].classList.toggle(name, on); },
+    // What a screen reader hears for a region on a map that takes taps: its name, its electors, and how it stands.
+    label(k, text) { if (onPick && regionEls[k].getAttribute('aria-label') !== text) regionEls[k].setAttribute('aria-label', text); },
     labelClass(k, name, on) { labelEls[k].lab.classList.toggle(name, on); },
     select(k) {
       selEl.setAttribute('d', k === null || k === undefined ? '' : outline(k));

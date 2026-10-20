@@ -220,10 +220,19 @@ await page.evaluate(() => localStorage.setItem('war-room:record', '{"played":2,"
 await page.reload();
 await page.waitForSelector('.night');
 assert.deepEqual(problems, [], 'problems after reloading on election night');
+// Its map takes the keyboard too: each region says where its count is, and Enter shows it.
+const nightReg = `.nt-map .reg[data-k="${country.regions.findIndex(g => g.name === 'New Aldham')}"]`;
+assert.deepEqual([await page.getAttribute(nightReg, 'tabindex'), await page.getAttribute(nightReg, 'role')], ['0', 'button']);
+assert.match(await page.getAttribute(nightReg, 'aria-label'), /^New Aldham, 9 electors, polls close at [789]:00 PM$/);
 await page.waitForTimeout(600);
 await page.evaluate(() => window.warroom.night.skip());
 const counts = await page.$$eval('.ev-names .count', els => els.map(e => +e.textContent));
 assert.equal(counts[0] + counts[1], 121, 'every elector is called by the end of the night');
+assert.match(await page.getAttribute(nightReg, 'aria-label'), /^New Aldham, 9 electors, called for \S+$/);
+await page.focus(nightReg);
+await page.keyboard.press('Enter');
+assert.match(await page.textContent('.region-pop'), /^New Aldham · 9.*Called for /);
+await page.click('.region-pop button');
 assert.ok((await legible('.call-banner'))[0] >= 4.5, 'the winner’s banner can be read');
 // Once every vote is in it says so: no LIVE badge, and nothing left to play or skip.
 assert.equal(await page.locator('.nt-live').isVisible(), false, 'still LIVE when the night is over');
@@ -327,6 +336,30 @@ const row = page.locator('.tip-table tbody tr').first();
 const rowName = await row.locator('button').textContent();
 await row.locator('td').last().click();
 assert.equal(await page.textContent('.rp-name'), rowName, 'a tap on the row opened its region');
+
+// The map works from the keyboard: every region is a button that says how it stands, Tab takes them from the top
+// of the map down, the one with the focus is outlined like a picked one, and Enter or Space opens it.
+{
+  const regs = await page.$$eval('.board .reg', els => els.map(el => ({ k: +el.dataset.k, tab: el.getAttribute('tabindex'), role: el.getAttribute('role'), label: el.getAttribute('aria-label') })));
+  assert.equal(regs.length, 21);
+  for (const { k, tab, role, label } of regs) {
+    const g = country.regions[k];
+    assert.deepEqual([tab, role], ['0', 'button'], `${g.name} can’t be reached from the keyboard`);
+    assert.match(label, new RegExp(`^${g.name}, ${g.electors} electors?, (Safe Tidewater|Likely Tidewater|Leans Tidewater|Toss-up|Leans Highland|Likely Highland|Safe Highland)$`));
+  }
+  await page.focus('.tabs button[data-tab="news"]');
+  await page.keyboard.press('Tab');
+  const onMap = () => page.evaluate(() => { const el = document.activeElement; return el.matches('.board .reg') ? window.warroom.country.regions[+el.dataset.k].name : null; });
+  assert.equal(await onMap(), 'Carrowmouth', 'Tab from the tabs goes to the top of the map');
+  assert.notEqual(await page.getAttribute('.board .sel.focus', 'd'), '', 'the region with the focus isn’t outlined');
+  await page.keyboard.press('Enter');
+  assert.equal(await page.textContent('.rp-name'), 'Carrowmouth');
+  await page.keyboard.press('Tab');
+  assert.equal(await onMap(), 'Westmere');
+  await page.keyboard.press(' ');
+  assert.equal(await page.textContent('.rp-name'), 'Westmere');
+  assert.equal(await onMap(), 'Westmere', 'picking a region took the focus off the map');
+}
 
 // A plant closing and a flood in the same week both ask the party in power to go there. Once the candidate
 // is promised to one, the other visit can't be picked, and the strategist stops suggesting it.

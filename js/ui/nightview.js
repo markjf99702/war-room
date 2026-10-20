@@ -99,13 +99,16 @@ export function renderNight(root, ctx) {
     const leanE = [0, 0];
     view.regions.forEach(v => {
       const k = v.k;
-      if (v.status === 'called') { map.fill(k, v.side === 0 ? 'var(--r-t3)' : 'var(--r-h3)'); map.hatch(k, null); }
+      let now;
+      if (v.status === 'called') { map.fill(k, v.side === 0 ? 'var(--r-t3)' : 'var(--r-h3)'); map.hatch(k, null); now = `called for ${name(v.side)}`; }
       else if (v.status === 'counting' && v.rep) {
         const lead = v.m > 0 ? 0 : 1;
         leanE[lead] += R(k).electors;
         map.fill(k, lead === 0 ? 'var(--r-t1)' : 'var(--r-h1)'); map.hatch(k, lead === 0 ? 't' : 'h');
-      } else if (v.status === 'counting') { map.fill(k, 'var(--r-tu)'); map.hatch(k, 'n'); }
-      else { map.fill(k, 'var(--r-tu)'); map.hatch(k, null); }
+        now = `counting, ${name(lead)} ahead`;
+      } else if (v.status === 'counting') { map.fill(k, 'var(--r-tu)'); map.hatch(k, 'n'); now = 'counting'; }
+      else { map.fill(k, 'var(--r-tu)'); map.hatch(k, null); now = `polls close at ${clock(plan.regions[k].close)}`; }
+      map.label(k, `${R(k).name}, ${plural(R(k).electors, 'elector')}, ${now}`);
     });
     const T = country.totalElectors;
     evCount[0].textContent = view.electors[0];

@@ -87,6 +87,7 @@ export function renderHQ(root, ctx) {
     country.regions.forEach((g, k) => {
       const r = rating(chanceT(inp[k].mean, inp[k].sd));
       map.fill(k, `var(--r-${r.key})`);
+      map.label(k, `${g.name}, ${plural(g.electors, 'elector')}, ${RATING_NAMES[r.key]}`);
       map.tokens(k, tokensFor(k));
     });
     renderBar();
