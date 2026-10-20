@@ -261,6 +261,17 @@ test('the strategist only picks calls a campaign can pay for', () => {
   }
 });
 
+// Counted by electors, so which side pays depends on where this campaign is close.
+test('building homes and leaving rents to the market both gain ground across the map', () => {
+  const st = fresh('two-sided-housing');
+  st.issuesSeen = ISSUES.filter(i => i.key !== 'housing').map(i => i.key);
+  const [d] = issueDecisions(st, country, 1);
+  for (const o of d.options.filter(x => ['build', 'market'].includes(x.key))) {
+    const across = o.stance.regions.reduce((sum, [k, pts]) => sum + pts * country.regions[k].electors, 0);
+    assert.ok(across > 0, `“${o.label}” loses ground across the map: ${across.toFixed(1)} elector-points`);
+  }
+});
+
 test('in a debate, each style beats one other: attack, facts, plan, story, and round again', () => {
   const beats = { attack: 'facts', facts: 'plan', plan: 'story', story: 'attack' };
   for (const [a, b] of Object.entries(beats)) {

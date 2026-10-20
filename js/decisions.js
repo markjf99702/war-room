@@ -126,7 +126,7 @@ export const ISSUES = [
     options: [
       { key: 'build', label: 'Build 100,000 homes', fx: [['metro', 1.2], ['rural', -0.2]], says: 'Up in the big cities, a touch down in the countryside.' },
       { key: 'cap', label: 'Cap the rents', gamble: { p: 0.55, win: [['metro', 1.5]], lose: [['metro', 0.3], ['all', -0.3]], winSays: 'Renters loved it.', loseSays: 'Economists lined up against it.' }, says: 'A gamble: a big gain in the cities, or a small one and a scolding everywhere.' },
-      { key: 'market', label: 'Leave it to the market', fx: [['rural', 0.4], ['metro', -0.8]], says: 'Up a little in the countryside, down in the cities.' },
+      { key: 'market', label: 'Leave it to the market', fx: [['rural', 1.0], ['metro', -0.4]], says: 'Up in the countryside, down a little in the cities.' },
     ],
   },
 ];
