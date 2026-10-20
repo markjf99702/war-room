@@ -53,7 +53,7 @@ export const ISSUES = [
     text: 'Scientists want the catch cut by a third to save the cod. The fishing towns say it would finish them.',
     options: [
       { key: 'towns', label: 'Stand with the fishing towns', fx: [['fishing', 1.2], ['urban', -0.4]], says: 'Up along the coast, down a little in the cities.' },
-      { key: 'science', label: 'Back the scientists', fx: [['urban', 0.8], ['fishing', -1.1]], says: 'Up in the cities, down in the fishing towns.' },
+      { key: 'science', label: 'Back the scientists', fx: [['urban', 1.0], ['fishing', -0.5]], says: 'Up in the cities, down a little in the fishing towns.' },
       { key: 'pay', label: 'Cut the catch and pay the boats', cost: 3, fx: [['fishing', 0.4], ['urban', 0.4]], says: 'A little up almost everywhere it matters, for $3M.' },
     ],
   },

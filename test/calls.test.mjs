@@ -182,6 +182,17 @@ test('changing your mind undoes the old position, even one taken as a gamble', (
   }
 });
 
+// Counted by electors, so which side pays depends on where this campaign is close.
+test('standing with the fishing towns and backing the scientists both gain ground across the map', () => {
+  const st = fresh('two-sided-fishing');
+  st.issuesSeen = ISSUES.filter(i => i.key !== 'fishing').map(i => i.key);
+  const [d] = issueDecisions(st, country, 1);
+  for (const o of d.options.filter(x => ['towns', 'science'].includes(x.key))) {
+    const across = o.stance.regions.reduce((sum, [k, pts]) => sum + pts * country.regions[k].electors, 0);
+    assert.ok(across > 0, `“${o.label}” loses ground across the map: ${across.toFixed(1)} elector-points`);
+  }
+});
+
 test('every position says where it loses ground, not just where it gains', () => {
   for (const i of ISSUES) for (const o of i.options) {
     if (o.fx?.some(([, pts]) => pts < 0)) assert.match(o.says, /down|barely/i, `${i.title}: “${o.label}” doesn’t say where it costs`);
