@@ -65,6 +65,6 @@ To put it online with GitHub Pages: **Settings → Pages → Build and deploymen
 - `js/night.js`: election night: when polls close, how the count comes in, and when the desk calls it.
 - `js/ui/`: the screens (title, ticket, war room, paper, election night, result) and the SVG map and charts.
 - `fonts/`: Libre Franklin, Big Shoulders Stencil and Newsreader (SIL Open Font License), served from here so nothing loads from elsewhere.
-- `sw.js`: keeps a copy for playing offline.
+- `sw.js`: keeps a copy for playing offline. On a connection that isn't answering, a page opens from that copy after four seconds. `FILES` in it is a fingerprint of the files it keeps: change one and `npm test` says what to set it to, so a release never leaves the copy half old.
 - `test/`: the rules in Node, and a whole campaign played through the real page.
 - `dev/`: tools used while building it: map previews, balance and calibration runs, the difficulty ladder, a traced campaign.
